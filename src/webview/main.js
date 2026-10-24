@@ -2,7 +2,8 @@
  * NotionDown page script, bundled by webpack for the webview.
  *
  * Why it is small: Milkdown Crepe provides the editor. This file only wires it to the
- * host's three-message protocol (see src/extension.js) and renders Mermaid code blocks.
+ * host's four-message protocol (see src/extension.js) and renders Mermaid code blocks. Math is
+ * rendered by Crepe's Latex feature.
  *
  * Invariants:
  * - `hostText` is the file text the host holds. The page sends text only when it differs from

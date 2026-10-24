@@ -1,3 +1,7 @@
+/**
+ * Tests what the real Crepe editor shows for images, math, and raw HTML, under jsdom. These
+ * checks cover the text and DOM the editor produces, not how the page looks.
+ */
 const { describe, it, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { open } = require("./helpers/crepe-dom");

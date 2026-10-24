@@ -1,6 +1,13 @@
 # Task Workflows
 
-This page holds the procedure for each kind of request. [AGENTS.md](../AGENTS.md) holds the routing table that picks the procedure, and the rules that apply to every procedure. Run the matching workflow and stop at its stopping point. The workflows link to the canonical guides and never repeat their content.
+This page holds the procedure for each kind of request.
+
+- **Routing:**
+  - [AGENTS.md](../AGENTS.md) holds the routing table that picks the procedure, and the rules that apply to every procedure.
+- **Use:**
+  - Run the matching workflow and stop at its stopping point.
+- **Scope:**
+  - The workflows link to the canonical guides and never repeat their content.
 
 `test/docs.test.js` fails when a workflow name in the routing table has no heading here, or the reverse.
 

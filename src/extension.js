@@ -3,8 +3,9 @@
  *
  * Why this shape: the editor is a DOM application (Milkdown Crepe), so it runs in a webview
  * that VS Code hosts as a custom text editor. The host owns the document; the page owns the
- * rendering. The only things that cross the boundary are Markdown strings, in three messages:
- * `ready` and `edit` (page to host) and `init` and `update` (host to page).
+ * rendering. The only things that cross the boundary are Markdown strings, in four messages:
+ * `ready` and `edit` (page to host) and `init` and `update` (host to page). The host also
+ * registers the commands that choose the default Markdown editor.
  *
  * Invariants:
  * - The host never trusts message contents beyond "is this a string".

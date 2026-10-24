@@ -4,7 +4,15 @@ This file is the shared instruction set for every AI agent and harness that work
 
 ## Key Context
 
-This extension is a Notion-style Markdown editor in a VS Code custom editor. It uses Milkdown Crepe for blocks, a slash menu, drag handles, and tables, and Mermaid for live diagrams. The file on disk stays plain Markdown. Package name: `notiondown`, command prefix: `notionDown`.
+This extension is a Notion-style Markdown editor in a VS Code custom editor. It is independent of Notion and says so in the readme.
+
+- **Libraries:**
+  - Milkdown Crepe provides blocks, the slash menu, drag handles, and tables.
+  - Mermaid draws live diagrams, and KaTeX renders math.
+- **File format:**
+  - The file on disk stays plain Markdown.
+- **Names:**
+  - Package name: `notiondown`. Command prefix: `notionDown`.
 
 - Host: `src/extension.js`
 - Fidelity: `src/markdown-sync.js` (pure CommonJS, shared by the page and the tests)
@@ -38,7 +46,14 @@ Match the maintainer's request to a workflow in `docs/workflows.md` and run it. 
 
 ## Dependencies
 
-Before adding, upgrading, or auditing any dependency (npm package or build tool), read `docs/dependencies.md`. It defines the version-selection criteria, the floors for VS Code and Node, and the review procedure. Ideas that were evaluated and not built are logged in `docs/decisions.md`.
+Before adding, upgrading, or auditing any dependency (npm package or build tool), read `docs/dependencies.md`.
+
+- **What it defines:**
+  - The version-selection criteria.
+  - The floors for VS Code and Node.
+  - The review procedure.
+- **Rejected ideas:**
+  - `docs/decisions.md` logs ideas that were evaluated and not built.
 
 ## Architecture Rules
 

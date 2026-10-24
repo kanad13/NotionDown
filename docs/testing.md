@@ -4,7 +4,7 @@ This page is the canonical testing guide. It maps each user workflow to the chec
 
 ## Overview
 
-The extension has two halves, and each half has its own kind of check.
+The extension has three parts, and each part has its own kind of check.
 
 - **Extension host code** (`src/extension.js`):
   - Event handling, message handling, and page generation run under Node with a fake `vscode` module.
@@ -61,7 +61,13 @@ The extension has two halves, and each half has its own kind of check.
 
 ## Manual Smoke Check
 
-Run this check before a release and after any change under `src/webview/`. Build first, then start the harness with `node tools/harness.js`, open `http://localhost:4173`, and repeat the check at `http://localhost:4173/?dark`. For the final check, install the `.vsix` and open `examples/test.md` with **Open in NotionDown**.
+Run this check before a release and after any change under `src/webview/`.
+
+- **Setup:**
+  - Build the bundle, then start the harness with `node tools/harness.js`.
+  - Open `http://localhost:4173`, and repeat the check at `http://localhost:4173/?dark`.
+- **Final pass:**
+  - Install the `.vsix` and open `examples/test.md` with **Open in NotionDown**.
 
 1. Confirm that headings, lists, task lists, the table, the code block, and the quote render.
 2. Confirm that the Mermaid block shows a diagram under its source (it can take a moment on first load).

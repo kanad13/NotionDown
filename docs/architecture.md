@@ -4,7 +4,11 @@ This page describes how NotionDown is built and why. Read the overview first, th
 
 ## Overview
 
-NotionDown is a VS Code custom text editor for Markdown files. VS Code owns the file. A webview page owns the screen. The two exchange Markdown text and nothing else.
+NotionDown is a VS Code custom text editor for Markdown files. Two parts share the work, and they exchange Markdown text and nothing else.
+
+- **Ownership:**
+  - VS Code owns the file.
+  - A webview page owns the screen.
 
 - **Host** (`src/extension.js`):
   - Registers the `notionDown.editor` custom editor and the `notionDown.openEditor` command.
@@ -58,13 +62,13 @@ flowchart LR
   - Disposing the panel disposes both subscriptions.
 - **Page:**
   - `hostText` is the file text the host holds. After each edit, the page builds the new file text from `hostText` and the editor's output, as the Content Fidelity section describes, and sends it only when it differs from `hostText`. Opening a file therefore never rewrites it.
-  - Edits are sent 200 ms after the last keystroke, and at once when the tab hides.
+  - Edits are sent after a pause in typing, and at once when the tab hides. [Cost](#cost) gives the delay.
 - **Line endings:**
   - The page works in LF. The host converts to the document's own ending when it writes and compares in LF.
 
 ## Content Fidelity
 
-A block editor re-serializes the document, and its serializer picks its own style. Writing that output back would change lines the user never touched. `src/markdown-sync.js` prevents that.
+A block editor re-serializes the document in its own style. Writing that output back would change lines the user never touched. `src/markdown-sync.js` prevents that.
 
 - **Rule:**
   - A top-level block that the user did not change keeps its exact original text, including its blank lines, list markers, and escapes.

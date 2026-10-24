@@ -1,3 +1,8 @@
+/**
+ * Tests src/markdown-sync.js: pure block reconciliation, then the real Crepe editor under jsdom,
+ * where every repository document and style fixture must save byte-identical and an edit must
+ * change only its own block.
+ */
 const { describe, it, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

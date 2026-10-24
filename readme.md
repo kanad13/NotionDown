@@ -4,7 +4,7 @@ A Notion-style editor for Markdown files in VS Code. You edit on one canvas, and
 
 ## Overview
 
-NotionDown opens a Markdown file as a block editor, built on [Milkdown Crepe](https://milkdown.dev). There is no split screen and no preview pane.
+NotionDown opens a Markdown file as a block editor. There is no split screen and no preview pane.
 
 - **What you get:**
   - Slash commands: type `/` for headings, lists, tables, code blocks, and quotes.
@@ -21,8 +21,6 @@ NotionDown opens a Markdown file as a block editor, built on [Milkdown Crepe](ht
 1. Open the Extensions view in VS Code.
 2. Search for "NotionDown", or for the identifier `KunalPathak.notiondown`.
 3. Select **Install**.
-
-The extension is not yet published. Until it is, build the `.vsix` with `npm run package` and run **Extensions: Install from VSIX...**.
 
 ## Use
 
@@ -79,6 +77,19 @@ The extension is not yet published. Until it is, build the `.vsix` with `npm run
   - The extension works in untrusted workspaces.
 
 The security model is in [docs/architecture.md](docs/architecture.md#security-model).
+
+## About
+
+- **Not affiliated with Notion:**
+  - NotionDown is an independent open-source project.
+  - It is not made, endorsed, or sponsored by Notion Labs, Inc.
+  - "Notion" is a trademark of its owner. The name describes the editing style only.
+- **Built with open-source libraries:**
+  - [Milkdown](https://milkdown.dev) and its Crepe editor provide the blocks, slash menu, tables, and math input.
+  - [Mermaid](https://mermaid.js.org) draws the diagrams.
+  - [KaTeX](https://katex.org) renders the math.
+  - [CodeMirror](https://codemirror.net) highlights the code blocks.
+  - All four are MIT-licensed.
 
 ## Contribute
 

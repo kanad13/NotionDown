@@ -54,7 +54,8 @@ npm test
    - For changes under `src/webview/`, run `npm run build` and `node tools/harness.js` to see the page in a browser without the editor.
 3. **Check:**
    - Run `npm test`. It builds the bundle, runs every automated test, and lints. [testing.md](testing.md) explains the suites and the manual smoke check.
-   - Run `npm run package` to confirm that the `.vsix` builds.
+   - Run `npm run package` to build the `.vsix`.
+   - Install the build with **Extensions: Install from VSIX...**, or with `code --install-extension notiondown-X.Y.Z.vsix`, to test it in a real editor before the extension is on a registry.
 4. **Commit:**
    - Keep commits atomic. Write a concise, imperative subject that says what changed, and add the reason in the body.
    - Add no attribution trailers.

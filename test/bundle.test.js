@@ -1,3 +1,7 @@
+/**
+ * Tests the webpack output in `dist/`: the bundled host opens a document and serves a complete page,
+ * and the page assets carry the styles and lazy chunks the editor needs.
+ */
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");

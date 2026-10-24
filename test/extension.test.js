@@ -1,3 +1,7 @@
+/**
+ * Tests the extension host against the fake `vscode` module: page generation, the message
+ * protocol, document writes, line endings, echo suppression, disposal, and the default-editor commands.
+ */
 const { describe, it, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const {
