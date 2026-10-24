@@ -73,12 +73,13 @@ async function open(markdown, options = {}) {
 	const crepe = new Crepe({
 		root,
 		defaultValue: body,
-		features: { [Crepe.Feature.Latex]: false, [Crepe.Feature.ImageBlock]: false, ...(options.features || {}) },
+		features: { ...sync.FEATURES, ...(options.features || {}) },
 	});
 	crepe.editor.config((ctx) => sync.applyStringifyStyle(ctx, keys));
 	await crepe.create();
 	const cache = new Map();
 	return {
+		crepe,
 		/** The editor's DOM root, for assertions about what the user would see. */
 		root,
 		/** Replaces the document with `next` file text, as a burst of typing would. */

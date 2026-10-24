@@ -14,9 +14,9 @@ import { Crepe } from "@milkdown/crepe";
 import { parserCtx, remarkCtx, remarkStringifyOptionsCtx, serializerCtx } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
 import { languages } from "@codemirror/language-data";
-import { applyStringifyStyle, createTools, reconcileMarkdown, splitFrontMatter } from "../markdown-sync";
-// Individual files instead of common/style.css: the bundle ships without the Latex, AI, top-bar
-// and image-block features, and their styles (KaTeX fonts are 1 MB) would load for nothing.
+import { FEATURES, applyStringifyStyle, createTools, reconcileMarkdown, splitFrontMatter } from "../markdown-sync";
+// Individual files instead of common/style.css: the bundle ships without the AI, top-bar and
+// image-block features, and their styles would load for nothing.
 import "@milkdown/crepe/theme/common/prosemirror.css";
 import "@milkdown/crepe/theme/common/reset.css";
 import "@milkdown/crepe/theme/common/block-edit.css";
@@ -27,6 +27,7 @@ import "@milkdown/crepe/theme/common/list-item.css";
 import "@milkdown/crepe/theme/common/placeholder.css";
 import "@milkdown/crepe/theme/common/toolbar.css";
 import "@milkdown/crepe/theme/common/table.css";
+import "@milkdown/crepe/theme/common/latex.css";
 import "@milkdown/crepe/theme/frame.css";
 import "./theme.css";
 
@@ -39,6 +40,12 @@ __webpack_nonce__ = script.nonce;
 /** Milliseconds to wait after the last keystroke before sending the text to the host. */
 const SEND_DELAY_MS = 200;
 
+/** Upper bound for the adaptive delay, so a huge file still saves within a couple of seconds. */
+const MAX_SEND_DELAY_MS = 2000;
+
+/** Milliseconds after opening at which the page precomputes block comparisons for the first edit. */
+const WARM_UP_DELAY_MS = 500;
+
 const vscode = acquireVsCodeApi();
 
 const keys = { remarkCtx, parserCtx, serializerCtx, remarkStringifyOptionsCtx };
@@ -47,6 +54,7 @@ const normalizedBlocks = new Map();
 let crepe;
 let hostText = "";
 let sendTimer;
+let sendDelay = SEND_DELAY_MS;
 let mermaidRuns = 0;
 
 /**
@@ -72,14 +80,27 @@ async function renderMermaid(source) {
 }
 
 /**
+ * Builds the file text for the editor's current content.
+ *
+ * @returns {string} File text in which blocks the user did not edit keep their original text
+ */
+function currentText() {
+	const { front, body } = splitFrontMatter(hostText);
+	const edited = crepe.getMarkdown();
+	return front + crepe.editor.action((ctx) => reconcileMarkdown(body, edited, createTools(ctx, keys, normalizedBlocks)));
+}
+
+/**
  * Sends the current Markdown to the host if the user changed it.
+ *
+ * The work grows with the file, so the delay before the next send grows with how long this one
+ * took: typing in a very large file never spends more than about a fifth of its time here.
  */
 function flush() {
 	clearTimeout(sendTimer);
-	const { front, body } = splitFrontMatter(hostText);
-	const edited = crepe.getMarkdown();
-	const text =
-		front + crepe.editor.action((ctx) => reconcileMarkdown(body, edited, createTools(ctx, keys, normalizedBlocks)));
+	const started = performance.now();
+	const text = currentText();
+	sendDelay = Math.min(MAX_SEND_DELAY_MS, Math.max(SEND_DELAY_MS, (performance.now() - started) * 4));
 	if (text === hostText) return;
 	hostText = text;
 	vscode.postMessage({ type: "edit", text });
@@ -97,7 +118,7 @@ async function createEditor(text) {
 	crepe = new Crepe({
 		root: document.getElementById("editor"),
 		defaultValue: splitFrontMatter(text).body,
-		features: { [Crepe.Feature.Latex]: false, [Crepe.Feature.ImageBlock]: false },
+		features: FEATURES,
 		featureConfigs: {
 			[Crepe.Feature.CodeMirror]: {
 				languages,
@@ -113,10 +134,13 @@ async function createEditor(text) {
 	crepe.on((listener) =>
 		listener.markdownUpdated(() => {
 			clearTimeout(sendTimer);
-			sendTimer = setTimeout(flush, SEND_DELAY_MS);
+			sendTimer = setTimeout(flush, sendDelay);
 		})
 	);
 	await crepe.create();
+	// The first comparison parses and serializes every block. Doing it now, while the user reads,
+	// keeps the first keystroke from stalling on a large file.
+	setTimeout(() => crepe && currentText(), WARM_UP_DELAY_MS);
 }
 
 window.addEventListener("message", async (event) => {

@@ -48,4 +48,12 @@ graph TD
 
 ---
 
-Text with <b>raw HTML</b> and a $dollar$ sign.
+Text with <b>raw HTML</b>.
+
+## Math
+
+Inline math $E=mc^2$ in a sentence, and a block:
+
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$

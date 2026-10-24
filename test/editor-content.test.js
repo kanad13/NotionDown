@@ -26,11 +26,20 @@ describe("what the editor shows for common Markdown (real Crepe editor)", () => 
 		assert.equal(save(), original);
 	});
 
-	it("shows dollar-delimited math as plain text, because the Latex feature is off", async () => {
-		const { root, save } = await show("Inline $E=mc^2$ and a block:\n\n$$\na^2 + b^2\n$$\n");
-		assert.ok(root.textContent.includes("$E=mc^2$"));
-		assert.equal(root.querySelector(".katex"), null);
-		assert.equal(save(), "Inline $E=mc^2$ and a block:\n\n$$\na^2 + b^2\n$$\n");
+	it("renders inline and block math with KaTeX, and writes the source back unchanged", async () => {
+		const original = "Inline $E=mc^2$ and a block:\n\n$$\na^2 + b^2\n$$\n";
+		const { root, save } = await show(original);
+		await new Promise((resolve) => setTimeout(resolve, 300));
+		assert.ok(root.querySelectorAll(".katex").length >= 1, "no KaTeX output");
+		assert.equal(save(), original);
+	});
+
+	it("keeps prices written with dollar signs intact when the paragraph is edited, though two of them display as math", async () => {
+		const original = "It costs $5 and then $10 more.\n";
+		const session = await show(original);
+		assert.equal(session.save(), original);
+		session.edit("It costs $5 and then $10 more, really.\n");
+		assert.equal(session.save(), "It costs $5 and then $10 more, really.\n");
 	});
 
 	it("keeps raw HTML as text instead of running it", async () => {

@@ -49,6 +49,15 @@ describe("reconcileMarkdown (pure)", () => {
 		assert.equal(reconcileMarkdown(original, "Body.\n", fakeTools), original);
 	});
 
+	it("turns an empty list item's placeholder into a bare marker, and drops placeholder lines in a quote", () => {
+		const edited = "- a\n  - <br />\n\n> note\n> <br />\n> more\n";
+		assert.equal(reconcileMarkdown("", edited, fakeTools), "- a\n  -\n\n> note\n>\n> more\n");
+	});
+
+	it("leaves a <br /> line inside a code fence alone", () => {
+		assert.equal(reconcileMarkdown("", "```html\n<br />\n```\n", fakeTools), "```html\n<br />\n```\n");
+	});
+
 	it("adds a new block with a blank line before it", () => {
 		assert.equal(reconcileMarkdown("One.\n", "One.\n\nTwo.\n", fakeTools), "One.\n\nTwo.\n");
 	});
@@ -128,6 +137,13 @@ describe("saving after an edit (real Crepe editor)", () => {
 		const saved = await edited(original, () => `${typed.trimEnd()}\n\n<br />\n\n# New heading\n\n<br />\n\ntext\n\n<br />\n`);
 		assert.equal(saved, `${typed.trimEnd()}\n\n# New heading\n\ntext\n`);
 		assert.ok(saved.includes("Configure default editor for '*.md'"), "line with * was rewritten");
+	});
+
+	it("writes no <br /> for an empty item at the end of a nested list, as the maintainer typed it", async () => {
+		const original = "# Guide\n\nText.\n";
+		const saved = await edited(original, () => `${original}\n- one\n- two\n  - three\n    - four\n    -\n`);
+		assert.ok(!saved.includes("<br"), saved);
+		assert.equal(saved, `${original}\n- one\n- two\n  - three\n    - four\n    -\n`);
 	});
 
 	it("keeps front matter, bullets, and rule styles outside the edited block", async () => {

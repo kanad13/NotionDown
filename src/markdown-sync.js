@@ -15,6 +15,13 @@
  * - Front matter is not Markdown content; it passes through untouched.
  */
 
+/**
+ * Crepe features the page turns on or off from its defaults. The page and the tests share this,
+ * so the tests run the editor the user gets. Image insertion stays off by decision; images in the
+ * Markdown still display. Math is on.
+ */
+const FEATURES = { latex: true, "image-block": false };
+
 /** Style choices that match most Markdown files, so blocks the user does edit stay close to the original. */
 const STRINGIFY_STYLE = { bullet: "-", rule: "-" };
 
@@ -57,6 +64,37 @@ function keyOf(text) {
 			return fenced ? line : line.replace(/^(\s*)[*+](\s)/, "$1-$2");
 		})
 		.join("\n");
+}
+
+/**
+ * Removes empty-paragraph placeholders that sit inside a block the user edited: an empty list
+ * item (`- <br />`) becomes a bare marker, and a placeholder line elsewhere is dropped.
+ *
+ * @param {string} text - Text of an edited block
+ * @returns {string} Text without placeholders, outside code fences
+ */
+function stripPlaceholders(text) {
+	let fenced = false;
+	const lines = [];
+	for (const line of text.split("\n")) {
+		if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+		if (fenced) {
+			lines.push(line);
+			continue;
+		}
+		const item = /^(\s*(?:>\s*)*(?:[-*+]|\d+[.)]))\s+<br\s*\/?\s*>\s*$/.exec(line);
+		if (item) {
+			lines.push(item[1]);
+			continue;
+		}
+		const quoted = /^(\s*(?:>\s*)+)<br\s*\/?\s*>\s*$/.exec(line);
+		if (quoted) {
+			lines.push(quoted[1].trimEnd());
+			continue;
+		}
+		if (!EMPTY_LINE_PLACEHOLDER.test(line.trim())) lines.push(line);
+	}
+	return lines.join("\n");
 }
 
 /**
@@ -181,7 +219,7 @@ function reconcileMarkdown(original, edited, tools) {
 			if (filled.length > 0 && (match[index] < first || match[index] > last)) return;
 			parts.push({ text: originalBlocks[match[index]].text, index: match[index] });
 		} else if (editedKeys[index] !== "") {
-			parts.push({ text: block.text, index: -1 });
+			parts.push({ text: stripPlaceholders(block.text), index: -1 });
 		}
 	});
 
@@ -243,4 +281,4 @@ function applyStringifyStyle(ctx, keys) {
 	ctx.update(keys.remarkStringifyOptionsCtx, (options) => ({ ...options, ...STRINGIFY_STYLE }));
 }
 
-module.exports = { applyStringifyStyle, splitFrontMatter, matchBlocks, reconcileMarkdown, createTools };
+module.exports = { FEATURES, applyStringifyStyle, splitFrontMatter, matchBlocks, reconcileMarkdown, createTools };
