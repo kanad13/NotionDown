@@ -28,7 +28,11 @@ flowchart LR
 
 - **Why a custom editor, not a preview panel:**
   - The page is the only view of the file, so there is no split screen and no scroll sync problem.
-  - `priority: "option"` keeps the default text editor as the default. The user opts in per file with **Open in NotionDown** or **Reopen Editor With...**.
+  - `priority: "option"` keeps the default text editor as the default until the user chooses otherwise. The user opens a file with **Open in NotionDown** or **Reopen Editor With...**.
+- **Default editor:**
+  - The first time a NotionDown editor opens, the extension asks once whether to make it the default for Markdown. A yes writes `*.md` to the user's `workbench.editorAssociations`.
+  - Two commands add and remove that entry later. They touch only the entry that names NotionDown.
+  - Why not `priority: "default"`: it takes over every Markdown file at install with no consent and no visible setting to undo.
 - **Why a local bundle, not a CDN:**
   - Milkdown has no CDN build, and a local bundle keeps remote script sources out of the Content Security Policy.
   - The cost is a larger `.vsix`. Mermaid and the CodeMirror languages load as lazy chunks, so the editor opens without parsing them.
@@ -54,21 +58,34 @@ flowchart LR
   - `writeQueue` applies the page's edits in arrival order.
   - Disposing the panel disposes both subscriptions.
 - **Page:**
-  - `baseline` is the page's own serialization of the text the host holds. An editor event equal to `baseline` carries no user change and is not sent. Opening a file therefore never rewrites it.
+  - `hostText` is the file text the host holds. After each edit, the page builds the new file text from `hostText` and the editor's output, as the Content Fidelity section describes, and sends it only when it differs from `hostText`. Opening a file therefore never rewrites it.
   - Edits are sent 200 ms after the last keystroke, and at once when the tab hides.
 - **Line endings:**
   - The page works in LF. The host converts to the document's own ending when it writes and compares in LF.
 
 ## Content Fidelity
 
-- **What the file keeps:**
-  - Text, structure, code fences, tables, task lists, links, and raw HTML are written back as Markdown.
-- **What the first edit normalizes:**
-  - The serializer writes `-` list markers and a `---` rule, to match the usual style. Table columns are padded to equal width.
-  - Other style choices in the original file, such as `*` bullets or `***` rules, change on the first edit. The change is limited to the edited file.
-- **What is not supported:**
+A block editor re-serializes the document, and its serializer picks its own style. Writing that output back would change lines the user never touched. `src/markdown-sync.js` prevents that.
+
+- **Rule:**
+  - A top-level block that the user did not change keeps its exact original text, including its blank lines, list markers, and escapes.
+- **How the page knows a block did not change:**
+  - It serializes each original block through the same editor pipeline and compares the result with the editor's output, block by block.
+  - The comparison ignores two serializer habits that are not edits: `<br />` for an empty paragraph, and swapping `-` for `*` between adjacent lists.
+  - Link definitions travel with every block, because the editor resolves a reference link only beside its definition.
+- **What changes in the file:**
+  - A block the user edited is written in the editor's style: `-` bullets, a `---` rule, padded tables, and escapes where Markdown needs them.
+  - A block the user moved keeps its original text.
+  - Empty paragraphs the user adds are not written. Empty paragraphs the file already has at its start or end stay.
+- **Front matter:**
+  - A leading `---` block is kept out of the editor and written back unchanged.
+- **What the editor shows, not what the file keeps:**
   - Math (`$...$`) shows as text. The Crepe math feature is off.
-  - Image insertion is off. Images that the Markdown already references load through the page's `<base>` address.
+  - Images written as `![alt](path)` display, and the path resolves through the page's `<base>`. Inserting, pasting, or dragging an image is off.
+  - Raw HTML shows as text and never runs.
+  - Syntax that Milkdown does not know, such as footnotes, shows as text. The file keeps it while the block stays unchanged, and an edit to that block may rewrite it.
+- **Limit:**
+  - Two edits in the same block rewrite the whole block, not just the changed words.
 
 ## Security Model
 

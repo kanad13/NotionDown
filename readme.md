@@ -30,7 +30,12 @@ The extension is not yet published. Until it is, build the `.vsix` with `npm run
 2. Select the **Open in NotionDown** icon in the editor title bar, or right-click the file in the Explorer and choose **Open in NotionDown**.
 3. Edit. Save as you would any file.
 
-To make NotionDown the default for Markdown, right-click a `.md` file, choose **Open With... > Configure default editor for '*.md'**, and select NotionDown. To go back, use **Reopen Editor With... > Text Editor**.
+**Make it the default:**
+
+- The first time you open a file in NotionDown, it asks whether to open all Markdown files with it. Choose **Make default** to say yes. It asks once.
+- Later, run **Markdown: Use NotionDown as the Default Markdown Editor** from the Command Palette. **Markdown: Stop Using NotionDown as the Default Markdown Editor** reverses it.
+- Both write one entry (`"*.md"`) to your `workbench.editorAssociations` user setting, so you can also edit it in settings.json.
+- To open a single file in the text editor, use **Reopen Editor With... > Text Editor**.
 
 ## Features
 
@@ -45,10 +50,17 @@ To make NotionDown the default for Markdown, right-click a `.md` file, choose **
 - **One source of truth:**
   - Edits made in another editor, an undo, or a Git checkout appear in NotionDown, and the reverse.
 
+**Your file stays yours:**
+
+- Lines you did not edit are written back byte for byte. A block you edited is written in NotionDown's style: `-` bullets, padded table columns, and a backslash before a character that Markdown could read as formatting.
+- Empty paragraphs you add are not written to the file.
+- Front matter is kept out of the editor and left unchanged.
+
 **Limits:**
 
-- The first edit in a file can normalize its Markdown style: `-` list markers, a `---` rule, and padded table columns. The change is limited to that file and shows in the Git diff.
-- Math (`$...$`) shows as text, and image insertion is off. Images that the Markdown already references display.
+- Images written as `![alt](path)` display. Inserting, pasting, or dragging an image is not supported.
+- Math (`$...$`) shows as text.
+- Syntax that Milkdown does not support, such as footnotes, shows as text.
 - A Mermaid diagram keeps its color theme until you reopen the file.
 
 ## Privacy and Security

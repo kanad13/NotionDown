@@ -69,7 +69,7 @@ The extension targets the current stable release of VS Code and carries no compa
 ## Node Floor Policy
 
 - **Floor:**
-  - `engines.node` names the lowest Node release that every tool in `devDependencies` supports and that still receives security fixes.
+  - `engines.node` names the lowest Node release that every tool in `devDependencies` supports and that still receives security fixes. The tightest tool sets it.
   - CI runs `npm test` on exactly that release.
 - **Moving the floor:**
   - Raise it when a tool or the Node release schedule requires it, and change the two `node-version` entries in `.github/workflows` in the same commit.

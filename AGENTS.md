@@ -7,6 +7,7 @@ This file is the shared instruction set for every AI agent and harness that work
 This extension is a Notion-style Markdown editor in a VS Code custom editor. It uses Milkdown Crepe for blocks, a slash menu, drag handles, and tables, and Mermaid for live diagrams. The file on disk stays plain Markdown. Package name: `notiondown`, command prefix: `notionDown`.
 
 - Host: `src/extension.js`
+- Fidelity: `src/markdown-sync.js` (pure CommonJS, shared by the page and the tests)
 - Page: `src/webview/main.js` and `src/webview/theme.css`, with the shell in `src/webview.html`
 - Build: webpack, two bundles → `dist/extension.js` and `dist/webview/`
 - Closure-based state in the host (no classes, no globals)
@@ -42,7 +43,8 @@ Before adding, upgrading, or auditing any dependency (npm package or build tool)
 ## Architecture Rules
 
 - Host logic in `src/extension.js` unless it exceeds ~1500 lines
-- One custom editor type (`notionDown.editor`), registered with `priority: "option"`
+- One custom editor type (`notionDown.editor`), registered with `priority: "option"`; the default-editor choice is the user's `workbench.editorAssociations`, never the manifest priority
+- Every write from the page goes through `src/markdown-sync.js`, so blocks the user did not edit keep their original text. Any new Markdown construct needs a fixture in `test/fixtures/sync/`
 - The host and the page exchange Markdown strings in four messages only: `ready`, `init`, `edit`, `update`
 - No TypeScript, no UI framework of our own
 - No remote scripts: everything the page runs ships in the `.vsix`, and `script-src` allows only the per-render nonce
@@ -78,6 +80,7 @@ When a task touches 3+ files or requires multiple related edits:
 
 - The testing strategy, commands, and manual smoke check live in `docs/testing.md`; update it when a workflow, contract, or tool changes
 - Manual testing via F5 debug launch, and in a browser with `node tools/harness.js`
+- Round-trip tests run the real Crepe editor under jsdom; run them before and after any change to Milkdown, the stringify style, or `src/markdown-sync.js`
 - Test file at `examples/test.md` with diverse Markdown content and a Mermaid diagram
 - `npm test` and `npm audit --omit=dev` must pass before any work is considered complete
 - Build a `.vsix` (`npm run package`) after each phase for manual install testing
