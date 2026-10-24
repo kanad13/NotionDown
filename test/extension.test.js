@@ -1,6 +1,20 @@
 const { describe, it, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
-const { install, handlers, registration, errors, executed, vscode, makeDoc, openEditor, reset } = require("./helpers/fake-vscode");
+const {
+	install,
+	handlers,
+	registration,
+	errors,
+	executed,
+	prompts,
+	userChoice,
+	settings,
+	vscode,
+	makeDoc,
+	makeState,
+	openEditor,
+	reset,
+} = require("./helpers/fake-vscode");
 
 install();
 const { activate, buildHtml, getNonce, normalizeEol, VIEW_TYPE } = require("../src/extension");
@@ -195,5 +209,69 @@ describe("open command", () => {
 		await handlers["command:notionDown.openEditor"]();
 		assert.equal(executed.length, 0);
 		assert.equal(errors.length, 1);
+	});
+});
+
+/** Lets the unawaited default-editor question finish. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+describe("default editor", () => {
+	beforeEach(reset);
+
+	const association = (value) => ({ "*.md": value });
+
+	it("asks once, on the first open, and writes the user setting on yes", async () => {
+		const state = makeState();
+		userChoice.next = "Make default";
+		await openEditor(activate, makeDoc("/a.md", ""), state);
+		await settle();
+		assert.equal(prompts.length, 1);
+		assert.deepEqual(settings.global.editorAssociations, association(VIEW_TYPE));
+		assert.equal(settings.writes[0].target, vscode.ConfigurationTarget.Global);
+	});
+
+	it("does not ask again after the user said no", async () => {
+		const state = makeState();
+		userChoice.next = "Not now";
+		await openEditor(activate, makeDoc("/a.md", ""), state);
+		await settle();
+		await openEditor(activate, makeDoc("/b.md", ""), state);
+		await settle();
+		assert.equal(prompts.length, 1);
+		assert.equal(settings.writes.length, 0);
+	});
+
+	it("does not ask when NotionDown is already the default", async () => {
+		settings.global.editorAssociations = association(VIEW_TYPE);
+		await openEditor(activate, makeDoc("/a.md", ""));
+		await settle();
+		assert.equal(prompts.length, 0);
+	});
+
+	it("still opens the editor when the question fails", async () => {
+		const failing = { get: () => { throw new Error("state unavailable"); }, update: async () => {} };
+		const panel = await openEditor(activate, makeDoc("/a.md", ""), failing);
+		assert.ok(panel.webview.html.startsWith("<!DOCTYPE html>"));
+	});
+
+	it("sets and unsets the association by command, keeping the user's other entries", async () => {
+		settings.global.editorAssociations = { "*.png": "imagePreview.previewEditor" };
+		activate({ extensionUri: { path: "/ext" }, subscriptions: [], globalState: makeState() });
+		await handlers["command:notionDown.setAsDefault"]();
+		assert.deepEqual(settings.global.editorAssociations, { "*.png": "imagePreview.previewEditor", ...association(VIEW_TYPE) });
+		await handlers["command:notionDown.unsetAsDefault"]();
+		assert.deepEqual(settings.global.editorAssociations, { "*.png": "imagePreview.previewEditor" });
+	});
+
+	it("does not remove a *.md association that belongs to another editor", async () => {
+		settings.global.editorAssociations = association("some.other.editor");
+		activate({ extensionUri: { path: "/ext" }, subscriptions: [], globalState: makeState() });
+		await handlers["command:notionDown.unsetAsDefault"]();
+		assert.deepEqual(settings.global.editorAssociations, association("some.other.editor"));
+	});
+
+	it("declares both commands in the manifest", () => {
+		const ids = require("../package.json").contributes.commands.map((c) => c.command);
+		assert.ok(ids.includes("notionDown.setAsDefault") && ids.includes("notionDown.unsetAsDefault"));
 	});
 });

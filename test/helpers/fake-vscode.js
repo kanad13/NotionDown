@@ -23,6 +23,13 @@ const registration = { viewType: undefined, provider: undefined, options: undefi
 const errors = [];
 const executed = [];
 
+/** Questions passed to `showInformationMessage`, and the button the fake user presses next. */
+const prompts = [];
+const userChoice = { next: undefined };
+
+/** `workbench` settings by scope, so tests can see what the extension wrote and where. */
+const settings = { global: {}, workspace: {}, writes: [] };
+
 const disposableFor = (key, handler) => ({
 	dispose: () => {
 		if (handlers[key] === handler) delete handlers[key];
@@ -33,6 +40,10 @@ const vscode = {
 	window: {
 		activeTextEditor: undefined,
 		showErrorMessage: (message) => errors.push(message),
+		showInformationMessage: async (message, ...buttons) => {
+			prompts.push({ message, buttons });
+			return userChoice.next;
+		},
 		registerCustomEditorProvider: (viewType, provider, options) => {
 			registration.viewType = viewType;
 			registration.provider = provider;
@@ -58,7 +69,15 @@ const vscode = {
 			return true;
 		},
 		applyEditResult: true,
+		getConfiguration: () => ({
+			inspect: (key) => ({ globalValue: settings.global[key], workspaceValue: settings.workspace[key] }),
+			update: async (key, value, target) => {
+				settings.writes.push({ key, value, target });
+				settings.global[key] = value;
+			},
+		}),
 	},
+	ConfigurationTarget: { Global: 1, Workspace: 2 },
 	commands: {
 		registerCommand: (id, handler) => {
 			handlers[`command:${id}`] = handler;
@@ -172,19 +191,35 @@ function makePanel() {
  *
  * @param {(context: object) => void} activate - The `activate` export under test
  * @param {object} doc - Document from makeDoc()
+ * @param {object} [state] - Extension global state from makeState(); a new one by default
  * @returns {Promise<object>} The fake panel, already resolved by the registered provider
  */
-async function openEditor(activate, doc) {
-	activate({ extensionUri: { scheme: "file", path: "/ext" }, subscriptions: [] });
+async function openEditor(activate, doc, state = makeState()) {
+	activate({ extensionUri: { scheme: "file", path: "/ext" }, subscriptions: [], globalState: state });
 	const panel = makePanel();
 	await registration.provider.resolveCustomTextEditor(doc, panel, { isCancellationRequested: false });
 	return panel;
 }
 
 /**
+ * Builds a fake `Memento`, the extension's persistent key-value store.
+ *
+ * @returns {{ get: Function, update: Function }} Store backed by a Map
+ */
+function makeState() {
+	const values = new Map();
+	return { get: (key) => values.get(key), update: async (key, value) => void values.set(key, value) };
+}
+
+/**
  * Clears recorded state between tests.
  */
 function reset() {
+	prompts.length = 0;
+	userChoice.next = undefined;
+	settings.global = {};
+	settings.workspace = {};
+	settings.writes.length = 0;
 	errors.length = 0;
 	executed.length = 0;
 	for (const key of Object.keys(handlers)) delete handlers[key];
@@ -193,4 +228,19 @@ function reset() {
 	vscode.window.activeTextEditor = undefined;
 }
 
-module.exports = { install, handlers, registration, errors, executed, vscode, makeDoc, makePanel, openEditor, reset };
+module.exports = {
+	install,
+	handlers,
+	registration,
+	errors,
+	executed,
+	prompts,
+	userChoice,
+	settings,
+	vscode,
+	makeDoc,
+	makePanel,
+	makeState,
+	openEditor,
+	reset,
+};
