@@ -7,11 +7,9 @@ const {
 	errors,
 	executed,
 	prompts,
-	userChoice,
 	settings,
 	vscode,
 	makeDoc,
-	makeState,
 	openEditor,
 	reset,
 } = require("./helpers/fake-vscode");
@@ -212,66 +210,54 @@ describe("open command", () => {
 	});
 });
 
-/** Lets the unawaited default-editor question finish. */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
-
 describe("default editor", () => {
 	beforeEach(reset);
 
 	const association = (value) => ({ "*.md": value });
+	const start = () => activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
 
-	it("asks once, on the first open, and writes the user setting on yes", async () => {
-		const state = makeState();
-		userChoice.next = "Make default";
-		await openEditor(activate, makeDoc("/a.md", ""), state);
-		await settle();
-		assert.equal(prompts.length, 1);
-		assert.deepEqual(settings.global.editorAssociations, association(VIEW_TYPE));
-		assert.equal(settings.writes[0].target, vscode.ConfigurationTarget.Global);
+	it("is the manifest default for Markdown, so it applies as soon as the extension installs", () => {
+		const editor = require("../package.json").contributes.customEditors[0];
+		assert.equal(editor.priority, "default");
+		assert.deepEqual(editor.selector, [{ filenamePattern: "*.md" }]);
 	});
 
-	it("does not ask again after the user said no", async () => {
-		const state = makeState();
-		userChoice.next = "Not now";
-		await openEditor(activate, makeDoc("/a.md", ""), state);
-		await settle();
-		await openEditor(activate, makeDoc("/b.md", ""), state);
-		await settle();
-		assert.equal(prompts.length, 1);
-		assert.equal(settings.writes.length, 0);
-	});
-
-	it("does not ask when NotionDown is already the default", async () => {
-		settings.global.editorAssociations = association(VIEW_TYPE);
+	it("never asks the user a question when an editor opens", async () => {
 		await openEditor(activate, makeDoc("/a.md", ""));
-		await settle();
 		assert.equal(prompts.length, 0);
 	});
 
-	it("still opens the editor when the question fails", async () => {
-		const failing = { get: () => { throw new Error("state unavailable"); }, update: async () => {} };
-		const panel = await openEditor(activate, makeDoc("/a.md", ""), failing);
-		assert.ok(panel.webview.html.startsWith("<!DOCTYPE html>"));
+	it("switches to the text editor by writing the user setting, keeping other entries", async () => {
+		settings.global.editorAssociations = { "*.png": "imagePreview.previewEditor" };
+		start();
+		await handlers["command:notionDown.useTextEditorAsDefault"]();
+		assert.deepEqual(settings.global.editorAssociations, { "*.png": "imagePreview.previewEditor", ...association("default") });
+		assert.equal(settings.writes[0].target, vscode.ConfigurationTarget.Global);
 	});
 
-	it("sets and unsets the association by command, keeping the user's other entries", async () => {
-		settings.global.editorAssociations = { "*.png": "imagePreview.previewEditor" };
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [], globalState: makeState() });
-		await handlers["command:notionDown.setAsDefault"]();
-		assert.deepEqual(settings.global.editorAssociations, { "*.png": "imagePreview.previewEditor", ...association(VIEW_TYPE) });
-		await handlers["command:notionDown.unsetAsDefault"]();
+	it("switches back by removing the text-editor entry, which restores the manifest default", async () => {
+		settings.global.editorAssociations = { "*.png": "imagePreview.previewEditor", ...association("default") };
+		start();
+		await handlers["command:notionDown.useAsDefault"]();
 		assert.deepEqual(settings.global.editorAssociations, { "*.png": "imagePreview.previewEditor" });
 	});
 
 	it("does not remove a *.md association that belongs to another editor", async () => {
 		settings.global.editorAssociations = association("some.other.editor");
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [], globalState: makeState() });
-		await handlers["command:notionDown.unsetAsDefault"]();
+		start();
+		await handlers["command:notionDown.useAsDefault"]();
 		assert.deepEqual(settings.global.editorAssociations, association("some.other.editor"));
+	});
+
+	it("ignores workspace-level associations when it writes the user setting", async () => {
+		settings.workspace.editorAssociations = { "*.txt": "workspace.only" };
+		start();
+		await handlers["command:notionDown.useTextEditorAsDefault"]();
+		assert.deepEqual(settings.global.editorAssociations, association("default"));
 	});
 
 	it("declares both commands in the manifest", () => {
 		const ids = require("../package.json").contributes.commands.map((c) => c.command);
-		assert.ok(ids.includes("notionDown.setAsDefault") && ids.includes("notionDown.unsetAsDefault"));
+		assert.ok(ids.includes("notionDown.useAsDefault") && ids.includes("notionDown.useTextEditorAsDefault"));
 	});
 });

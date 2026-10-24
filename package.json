@@ -48,7 +48,7 @@
 						"filenamePattern": "*.md"
 					}
 				],
-				"priority": "option"
+				"priority": "default"
 			}
 		],
 		"commands": [
@@ -59,13 +59,13 @@
 				"icon": "$(edit)"
 			},
 			{
-				"command": "notionDown.setAsDefault",
+				"command": "notionDown.useAsDefault",
 				"title": "Use NotionDown as the Default Markdown Editor",
 				"category": "Markdown"
 			},
 			{
-				"command": "notionDown.unsetAsDefault",
-				"title": "Stop Using NotionDown as the Default Markdown Editor",
+				"command": "notionDown.useTextEditorAsDefault",
+				"title": "Use the VS Code Text Editor as the Default Markdown Editor",
 				"category": "Markdown"
 			}
 		],

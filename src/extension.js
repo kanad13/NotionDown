@@ -17,12 +17,14 @@ const template = require("./webview.html");
 
 const VIEW_TYPE = "notionDown.editor";
 const COMMAND_OPEN = "notionDown.openEditor";
-const COMMAND_SET_DEFAULT = "notionDown.setAsDefault";
-const COMMAND_UNSET_DEFAULT = "notionDown.unsetAsDefault";
+const COMMAND_USE_NOTIONDOWN = "notionDown.useAsDefault";
+const COMMAND_USE_TEXT_EDITOR = "notionDown.useTextEditorAsDefault";
 
 /** The file pattern that VS Code's `workbench.editorAssociations` setting maps to an editor. */
 const DEFAULT_PATTERN = "*.md";
-const PROMPTED_KEY = "notionDown.defaultPrompted";
+
+/** The `workbench.editorAssociations` value that means VS Code's own text editor. */
+const TEXT_EDITOR_VIEW_TYPE = "default";
 
 /** Upper bound for remembered writes whose echo has not arrived; a leak guard, not a tuning knob. */
 const MAX_PENDING_ECHOES = 64;
@@ -80,61 +82,39 @@ function buildHtml(values) {
 }
 
 /**
- * Makes NotionDown the default editor for Markdown files, or removes that choice.
+ * Chooses which editor opens Markdown files by default.
  *
- * Why this and not `priority: "default"` in the manifest: the manifest priority takes over every
- * Markdown file the moment the extension installs, with no consent and no way back except a
- * per-file override. The association below is the user's own setting, so it shows in settings.json
- * and can be edited or deleted there.
+ * Why an association and not an extension setting: the manifest makes NotionDown the default
+ * (`priority: "default"`), and VS Code's own `workbench.editorAssociations` is the one place a
+ * user overrides a default. A second switch inside the extension would have to fight it. This
+ * writes that user setting, so the choice shows in settings.json and can be edited there.
  *
- * @param {boolean} enabled - True to set NotionDown as the default, false to remove it
+ * @param {boolean} notionDown - True to open Markdown in NotionDown, false for VS Code's text editor
  * @returns {Promise<void>} Resolves when the user setting is written
  */
-async function setAsDefault(enabled) {
+async function chooseDefaultEditor(notionDown) {
 	const config = vscode.workspace.getConfiguration("workbench");
 	// Only the user-level value is rewritten; the merged value would copy workspace entries into it.
 	const inspected = config.inspect("editorAssociations");
 	const associations = { ...((inspected && inspected.globalValue) || {}) };
-	if (enabled) {
-		associations[DEFAULT_PATTERN] = VIEW_TYPE;
-	} else if (associations[DEFAULT_PATTERN] === VIEW_TYPE) {
-		delete associations[DEFAULT_PATTERN];
+	if (notionDown) {
+		// Dropping the entry hands the choice back to the manifest default, which is NotionDown.
+		if (associations[DEFAULT_PATTERN] === TEXT_EDITOR_VIEW_TYPE || associations[DEFAULT_PATTERN] === VIEW_TYPE) {
+			delete associations[DEFAULT_PATTERN];
+		}
+	} else {
+		associations[DEFAULT_PATTERN] = TEXT_EDITOR_VIEW_TYPE;
 	}
 	await config.update("editorAssociations", associations, vscode.ConfigurationTarget.Global);
-}
-
-/**
- * Asks once whether NotionDown should be the default Markdown editor.
- *
- * Why once, and why on first use: asking at install time needs a startup activation for every
- * VS Code launch, and asking repeatedly is a nag. The first time the user opens NotionDown is
- * the moment they know what they are choosing.
- *
- * @param {vscode.Memento} state - Persistent store that remembers the question was asked
- * @returns {Promise<void>} Resolves after the user answers, or at once if no question is needed
- */
-async function offerDefault(state) {
-	if (state.get(PROMPTED_KEY)) return;
-	await state.update(PROMPTED_KEY, true);
-	const inspected = vscode.workspace.getConfiguration("workbench").inspect("editorAssociations");
-	const current = inspected && inspected.globalValue;
-	if (current && current[DEFAULT_PATTERN] === VIEW_TYPE) return;
-	const choice = await vscode.window.showInformationMessage(
-		"Open all Markdown files in NotionDown by default?",
-		"Make default",
-		"Not now"
-	);
-	if (choice === "Make default") await setAsDefault(true);
 }
 
 /**
  * Creates the custom editor provider.
  *
  * @param {vscode.Uri} extensionUri - Root of the installed extension
- * @param {() => void} [onOpen] - Called when an editor opens, for the one-time default-editor question
  * @returns {{ resolveCustomTextEditor: Function }} Provider for `registerCustomEditorProvider`
  */
-function createProvider(extensionUri, onOpen = () => {}) {
+function createProvider(extensionUri) {
 	/**
 	 * Connects one document to one webview panel.
 	 *
@@ -143,7 +123,6 @@ function createProvider(extensionUri, onOpen = () => {}) {
 	 * @returns {Promise<void>} Resolves once the page is configured
 	 */
 	async function resolveCustomTextEditor(document, panel) {
-		onOpen();
 		const webview = panel.webview;
 		const distUri = vscode.Uri.joinPath(extensionUri, "dist");
 		const documentFolder = vscode.Uri.joinPath(document.uri, "..");
@@ -232,16 +211,11 @@ function pickMarkdownUri(uri) {
  */
 function activate(context) {
 	context.subscriptions.push(
-		vscode.window.registerCustomEditorProvider(
-			VIEW_TYPE,
-			createProvider(context.extensionUri, () => {
-				// A failed question must never break the editor that is opening.
-				offerDefault(context.globalState).catch(() => {});
-			}),
-			{ supportsMultipleEditorsPerDocument: false }
-		),
-		vscode.commands.registerCommand(COMMAND_SET_DEFAULT, () => setAsDefault(true)),
-		vscode.commands.registerCommand(COMMAND_UNSET_DEFAULT, () => setAsDefault(false)),
+		vscode.window.registerCustomEditorProvider(VIEW_TYPE, createProvider(context.extensionUri), {
+			supportsMultipleEditorsPerDocument: false,
+		}),
+		vscode.commands.registerCommand(COMMAND_USE_NOTIONDOWN, () => chooseDefaultEditor(true)),
+		vscode.commands.registerCommand(COMMAND_USE_TEXT_EDITOR, () => chooseDefaultEditor(false)),
 		vscode.commands.registerCommand(COMMAND_OPEN, async (uri) => {
 			const target = pickMarkdownUri(uri);
 			if (!target) {
