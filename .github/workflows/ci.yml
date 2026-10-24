@@ -1,0 +1,40 @@
+name: CI Quality Checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v7
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22.13.0'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Audit shipped dependencies
+        run: npm audit --omit=dev
+
+      - name: Run tests and linter
+        run: npm test
+      
+      - name: Package extension
+        run: npm run package
+      
+      - name: Verify .vsix created
+        run: |
+          if [ ! -f *.vsix ]; then
+            echo "Error: .vsix file not created"
+            exit 1
+          fi
+          echo "Package created successfully"
