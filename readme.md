@@ -30,11 +30,11 @@ The extension is not yet published. Until it is, build the `.vsix` with `npm run
 2. Select the **Open in NotionDown** icon in the editor title bar, or right-click the file in the Explorer and choose **Open in NotionDown**.
 3. Edit. Save as you would any file.
 
-**Make it the default:**
+**Default editor:**
 
-- The first time you open a file in NotionDown, it asks whether to open all Markdown files with it. Choose **Make default** to say yes. It asks once.
-- Later, run **Markdown: Use NotionDown as the Default Markdown Editor** from the Command Palette. **Markdown: Stop Using NotionDown as the Default Markdown Editor** reverses it.
-- Both write one entry (`"*.md"`) to your `workbench.editorAssociations` user setting, so you can also edit it in settings.json.
+- NotionDown opens every `.md` file by default, from the moment it is installed.
+- To use VS Code's text editor for Markdown instead, run **Markdown: Use the VS Code Text Editor as the Default Markdown Editor** from the Command Palette. **Markdown: Use NotionDown as the Default Markdown Editor** reverses it.
+- Both commands write one entry (`"*.md"`) to your `workbench.editorAssociations` user setting, so you can also edit it in settings.json.
 - To open a single file in the text editor, use **Reopen Editor With... > Text Editor**.
 
 ## Features
@@ -47,6 +47,8 @@ The extension is not yet published. Until it is, build the `.vsix` with `npm run
   - Syntax highlighting for many languages in an editable code block.
 - **Diagrams:**
   - A `mermaid` code block shows its diagram under the source.
+- **Math:**
+  - Inline `$...$` and block `$$...$$` math render with KaTeX, and the source stays in the file.
 - **One source of truth:**
   - Edits made in another editor, an undo, or a Git checkout appear in NotionDown, and the reverse.
 
@@ -58,8 +60,8 @@ The extension is not yet published. Until it is, build the `.vsix` with `npm run
 
 **Limits:**
 
-- Images written as `![alt](path)` display. Inserting, pasting, or dragging an image is not supported.
-- Math (`$...$`) shows as text.
+- Images written as `![alt](path)` display. NotionDown does not insert, paste, or drag-and-drop images, and will not.
+- Two dollar signs in one paragraph, such as two prices, can display as math. The text in the file does not change.
 - Syntax that Milkdown does not support, such as footnotes, shows as text.
 - A Mermaid diagram keeps its color theme until you reopen the file.
 

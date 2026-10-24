@@ -54,8 +54,8 @@ The extension has two halves, and each half has its own kind of check.
 | Mermaid diagrams                            | `bundle`: Mermaid ships as a lazy chunk                                               | Rendering is manual                           |
 | Markdown stays clean in Git                 | `sync`: every repository document and every style fixture saves byte-identical; an edit changes only its block; `<br />` placeholders and escapes never reach the file | New Markdown syntax needs a new fixture |
 | Images written as `![alt](path)`            | `editor-content`: the `<img>` carries the path. Harness: the image loads through `<base>`                          | A real webview's resource roots are manual    |
-| Math written as `$...$`                     | `editor-content`: stays text; `sync`: written back unchanged                                                        | Math rendering is not supported               |
-| Use NotionDown as the default editor        | `extension`: one question on first open; yes writes the user setting; no does not ask again; the commands add and remove only NotionDown's entry | The setting's effect in a real editor is manual |
+| Math written as `$...$` and `$$...$$`       | `editor-content`: KaTeX output appears; `sync`: written back unchanged. Harness: fonts load under the CSP          | Pairing of two dollar signs is the library's  |
+| Use NotionDown as the default editor        | `extension`: the manifest priority is `default`; the two commands write and remove only the `*.md` user entry, and no question is asked | The setting's effect in a real editor is manual |
 | Bundled extension starts and serves a page  | `bundle`: complete page from `dist/extension.js`                                      | Install in a real editor is manual            |
 | Documents agree with each other             | `docs`: links, anchors, and task routing resolve                                      | Claims about behavior are manual (Sync)       |
 

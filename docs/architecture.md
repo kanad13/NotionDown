@@ -28,11 +28,10 @@ flowchart LR
 
 - **Why a custom editor, not a preview panel:**
   - The page is the only view of the file, so there is no split screen and no scroll sync problem.
-  - `priority: "option"` keeps the default text editor as the default until the user chooses otherwise. The user opens a file with **Open in NotionDown** or **Reopen Editor With...**.
-- **Default editor:**
-  - The first time a NotionDown editor opens, the extension asks once whether to make it the default for Markdown. A yes writes `*.md` to the user's `workbench.editorAssociations`.
-  - Two commands add and remove that entry later. They touch only the entry that names NotionDown.
-  - Why not `priority: "default"`: it takes over every Markdown file at install with no consent and no visible setting to undo.
+  - `priority: "default"` makes NotionDown open every `.md` file as soon as it installs, which is the product's purpose.
+- **Opting out:**
+  - VS Code's own `workbench.editorAssociations` is the one place a user overrides a default, so the extension adds no setting of its own that would have to fight it.
+  - **Use the VS Code Text Editor as the Default Markdown Editor** writes `"*.md": "default"` to the user setting, and **Use NotionDown as the Default Markdown Editor** removes that entry. Neither touches an entry that belongs to another editor, and neither copies workspace settings into the user setting.
 - **Why a local bundle, not a CDN:**
   - Milkdown has no CDN build, and a local bundle keeps remote script sources out of the Content Security Policy.
   - The cost is a larger `.vsix`. Mermaid and the CodeMirror languages load as lazy chunks, so the editor opens without parsing them.
@@ -80,12 +79,22 @@ A block editor re-serializes the document, and its serializer picks its own styl
 - **Front matter:**
   - A leading `---` block is kept out of the editor and written back unchanged.
 - **What the editor shows, not what the file keeps:**
-  - Math (`$...$`) shows as text. The Crepe math feature is off.
-  - Images written as `![alt](path)` display, and the path resolves through the page's `<base>`. Inserting, pasting, or dragging an image is off.
+  - Math renders with KaTeX. Remark-math pairs any two dollar signs in a paragraph, so two prices can display as math. The file text is not affected.
+  - Images written as `![alt](path)` display, and the path resolves through the page's `<base>`. Inserting, pasting, or dragging an image is off by decision (see [decisions.md](decisions.md)).
   - Raw HTML shows as text and never runs.
   - Syntax that Milkdown does not know, such as footnotes, shows as text. The file keeps it while the block stays unchanged, and an edit to that block may rewrite it.
-- **Limit:**
+- **Limits:**
   - Two edits in the same block rewrite the whole block, not just the changed words.
+  - An empty list item the user adds is written as a bare marker (`-`), and other empty-paragraph placeholders inside an edited block are removed.
+
+### Cost
+
+- **When it runs:**
+  - After the user stops typing, not on every keystroke and not on save. VS Code saves the buffer to disk by its own rules.
+  - The delay is 200 ms, and it grows to four times the last run's duration, up to 2 seconds, so a very large file never spends more than about a fifth of the time here.
+- **What it costs:**
+  - The page serializes the document and parses it into blocks (two passes over the text), then compares block keys. Original blocks are serialized once and cached by text.
+  - Measured under jsdom on generated files: 200 blocks (8 KB) takes about 30 ms, 1,000 blocks (41 KB) about 115 ms, and 3,000 blocks (126 KB) about 430 ms. The first run after opening costs two to three times as much, so the page does it at idle, 500 ms after the file opens.
 
 ## Security Model
 

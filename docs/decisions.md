@@ -36,4 +36,12 @@ No entries.
 
 ## Declined
 
-No entries.
+### Image insertion (paste, drag and drop, upload)
+
+- **What it is:**
+  - Pasting or dragging an image into the editor saves the file beside the document and inserts a link.
+- **Why it is declined:**
+  - The maintainer decided that NotionDown never inserts images. Images written as `![alt](path)` still display.
+  - The editor's image feature is off, so the slash menu has no image entry.
+- **Reopen when:**
+  - The maintainer changes the product goal.

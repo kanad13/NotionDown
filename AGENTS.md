@@ -43,7 +43,7 @@ Before adding, upgrading, or auditing any dependency (npm package or build tool)
 ## Architecture Rules
 
 - Host logic in `src/extension.js` unless it exceeds ~1500 lines
-- One custom editor type (`notionDown.editor`), registered with `priority: "option"`; the default-editor choice is the user's `workbench.editorAssociations`, never the manifest priority
+- One custom editor type (`notionDown.editor`), registered with `priority: "default"`; a user opts out through `workbench.editorAssociations`, which the two default-editor commands write, and the extension adds no setting of its own
 - Every write from the page goes through `src/markdown-sync.js`, so blocks the user did not edit keep their original text. Any new Markdown construct needs a fixture in `test/fixtures/sync/`
 - The host and the page exchange Markdown strings in four messages only: `ready`, `init`, `edit`, `update`
 - No TypeScript, no UI framework of our own
