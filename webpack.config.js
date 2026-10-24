@@ -63,7 +63,15 @@ const webviewConfig = {
 				test: /\.css$/,
 				// Crepe marks its package side-effect free, which makes webpack drop its CSS imports.
 				sideEffects: true,
-				use: [MiniCssExtractPlugin.loader, "css-loader"],
+				use: [
+					MiniCssExtractPlugin.loader,
+					{
+						loader: "css-loader",
+						// KaTeX lists woff2, woff, and ttf for each font. Every Chromium that runs VS Code
+						// takes woff2, so the other two would only add about 800 KB to the package.
+						options: { url: { filter: (url) => !/\.(woff|ttf)$/.test(url) } },
+					},
+				],
 			},
 			{
 				test: /\.(woff2?|ttf|eot|svg|png)$/,
