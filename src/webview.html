@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'none'; script-src 'nonce-{{NONCE}}'; style-src {{CSP_SOURCE}} 'unsafe-inline'; img-src {{CSP_SOURCE}} https: data: blob:; font-src {{CSP_SOURCE}} data:;"
+		/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<base href="{{BASE_URI}}" />
+		<link rel="stylesheet" href="{{STYLE_URI}}" />
+		<title>NotionDown</title>
+	</head>
+	<body>
+		<main id="editor"></main>
+		<script nonce="{{NONCE}}" src="{{SCRIPT_URI}}" data-public-path="{{PUBLIC_PATH}}"></script>
+	</body>
+</html>
