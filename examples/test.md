@@ -38,6 +38,10 @@ graph TD
   B -->|No| D[Split preview]
 ```
 
+## Image
+
+![Sample image](sample.png)
+
 ## Quote and divider
 
 > A block quote.

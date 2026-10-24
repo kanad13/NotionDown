@@ -47,7 +47,8 @@ window.acquireVsCodeApi = () => ({ postMessage: (m) => {
 } });
 </script>`;
 	const style = `<style>:root{${themes[theme]};--vscode-font-family:system-ui,sans-serif;--vscode-editor-font-family:Menlo,monospace}</style>`;
-	return html.replace("</head>", `${style}${stub}</head>`).replace("<body>", `<body class="vscode-${theme}">`);
+	// Function replacers: the sample text can contain `$&` or `$'`, which a string replacement would expand.
+	return html.replace("</head>", () => `${style}${stub}</head>`).replace("<body>", () => `<body class="vscode-${theme}">`);
 }
 
 http.createServer((req, res) => {

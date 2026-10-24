@@ -5,14 +5,16 @@
  * host's three-message protocol (see src/extension.js) and renders Mermaid code blocks.
  *
  * Invariants:
- * - `baseline` is the page's own serialization of the text the host holds. An editor event
- *   equal to it carries no user change and is not sent, so opening a file never rewrites it.
+ * - `hostText` is the file text the host holds. The page sends text only when it differs from
+ *   `hostText`, and blocks the user did not edit keep their original text (see markdown-sync.js),
+ *   so opening or saving a file never rewrites lines the user did not touch.
  * - Mermaid runs with `securityLevel: "strict"`, so diagram text cannot inject markup.
  */
 import { Crepe } from "@milkdown/crepe";
-import { remarkStringifyOptionsCtx } from "@milkdown/kit/core";
+import { parserCtx, remarkCtx, remarkStringifyOptionsCtx, serializerCtx } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
 import { languages } from "@codemirror/language-data";
+import { applyStringifyStyle, createTools, reconcileMarkdown, splitFrontMatter } from "../markdown-sync";
 // Individual files instead of common/style.css: the bundle ships without the Latex, AI, top-bar
 // and image-block features, and their styles (KaTeX fonts are 1 MB) would load for nothing.
 import "@milkdown/crepe/theme/common/prosemirror.css";
@@ -39,8 +41,11 @@ const SEND_DELAY_MS = 200;
 
 const vscode = acquireVsCodeApi();
 
+const keys = { remarkCtx, parserCtx, serializerCtx, remarkStringifyOptionsCtx };
+const normalizedBlocks = new Map();
+
 let crepe;
-let baseline = "";
+let hostText = "";
 let sendTimer;
 let mermaidRuns = 0;
 
@@ -71,9 +76,12 @@ async function renderMermaid(source) {
  */
 function flush() {
 	clearTimeout(sendTimer);
-	const text = crepe.getMarkdown();
-	if (text === baseline) return;
-	baseline = text;
+	const { front, body } = splitFrontMatter(hostText);
+	const edited = crepe.getMarkdown();
+	const text =
+		front + crepe.editor.action((ctx) => reconcileMarkdown(body, edited, createTools(ctx, keys, normalizedBlocks)));
+	if (text === hostText) return;
+	hostText = text;
 	vscode.postMessage({ type: "edit", text });
 }
 
@@ -84,9 +92,11 @@ function flush() {
  * @returns {Promise<void>} Resolves once the editor is mounted
  */
 async function createEditor(text) {
+	hostText = text;
+	// Front matter is not content; the editor shows the body and `flush` puts the front matter back.
 	crepe = new Crepe({
 		root: document.getElementById("editor"),
-		defaultValue: text,
+		defaultValue: splitFrontMatter(text).body,
 		features: { [Crepe.Feature.Latex]: false, [Crepe.Feature.ImageBlock]: false },
 		featureConfigs: {
 			[Crepe.Feature.CodeMirror]: {
@@ -99,18 +109,14 @@ async function createEditor(text) {
 			},
 		},
 	});
-	// Write the styles most Markdown files already use, so the first edit does not turn every
-	// "-" bullet and "---" rule into "*" and "***" in Git.
-	crepe.editor.config((ctx) => ctx.update(remarkStringifyOptionsCtx, (options) => ({ ...options, bullet: "-", rule: "-" })));
+	crepe.editor.config((ctx) => applyStringifyStyle(ctx, keys));
 	crepe.on((listener) =>
-		listener.markdownUpdated((_ctx, markdown) => {
-			if (markdown === baseline) return;
+		listener.markdownUpdated(() => {
 			clearTimeout(sendTimer);
 			sendTimer = setTimeout(flush, SEND_DELAY_MS);
 		})
 	);
 	await crepe.create();
-	baseline = crepe.getMarkdown();
 }
 
 window.addEventListener("message", async (event) => {
@@ -120,8 +126,8 @@ window.addEventListener("message", async (event) => {
 		await createEditor(message.text);
 	} else if (message.type === "update" && crepe) {
 		clearTimeout(sendTimer);
-		crepe.editor.action(replaceAll(message.text));
-		baseline = crepe.getMarkdown();
+		hostText = message.text;
+		crepe.editor.action(replaceAll(splitFrontMatter(message.text).body));
 	}
 });
 
