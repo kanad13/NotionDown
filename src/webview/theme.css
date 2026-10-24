@@ -1,0 +1,47 @@
+/* Maps Crepe's theme tokens to VS Code's, so the editor follows every color theme. */
+body {
+	margin: 0;
+	padding: 0;
+	background: var(--vscode-editor-background);
+}
+
+#editor {
+	max-width: 52rem;
+	margin: 0 auto;
+	padding: 1.5rem 1rem 6rem;
+}
+
+.milkdown {
+	--crepe-color-background: var(--vscode-editor-background);
+	--crepe-color-on-background: var(--vscode-editor-foreground);
+	--crepe-color-surface: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	--crepe-color-surface-low: var(--vscode-sideBar-background, var(--vscode-editor-background));
+	--crepe-color-on-surface: var(--vscode-editor-foreground);
+	--crepe-color-on-surface-variant: var(--vscode-descriptionForeground);
+	--crepe-color-outline: var(--vscode-editorWidget-border, var(--vscode-panel-border));
+	--crepe-color-primary: var(--vscode-textLink-foreground);
+	--crepe-color-secondary: var(--vscode-editor-selectionBackground);
+	--crepe-color-on-secondary: var(--vscode-editor-foreground);
+	--crepe-color-inverse: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	--crepe-color-on-inverse: var(--vscode-editor-foreground);
+	--crepe-color-inline-code: var(--vscode-textPreformat-foreground);
+	--crepe-color-error: var(--vscode-errorForeground);
+	--crepe-color-hover: var(--vscode-list-hoverBackground);
+	--crepe-color-selected: var(--vscode-list-activeSelectionBackground);
+	--crepe-color-inline-area: var(--vscode-textCodeBlock-background);
+	--crepe-font-title: var(--vscode-font-family);
+	--crepe-font-default: var(--vscode-font-family);
+	--crepe-font-code: var(--vscode-editor-font-family);
+}
+
+.notiondown-mermaid {
+	display: flex;
+	justify-content: center;
+	overflow-x: auto;
+}
+
+.notiondown-mermaid-error {
+	color: var(--vscode-errorForeground);
+	font-family: var(--vscode-editor-font-family);
+	white-space: pre-wrap;
+}

@@ -40,6 +40,7 @@ module.exports = [
 			globals: {
 				document: "readonly",
 				window: "readonly",
+				performance: "readonly",
 				acquireVsCodeApi: "readonly",
 				__webpack_public_path__: "writable",
 				__webpack_nonce__: "writable",
