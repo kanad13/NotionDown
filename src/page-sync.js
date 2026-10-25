@@ -36,7 +36,7 @@ const MAX_SEND_DELAY_MS = 2000;
  * @param {(use: (tools: object) => any) => any} deps.withTools - Runs `use` with the parser access that markdown-sync needs
  * @param {(body: string) => void} deps.replaceEditor - Replaces the editor content with Markdown (no front matter)
  * @param {{ sendDelayMs?: number, maxSendDelayMs?: number, now?: () => number, setTimer?: Function, clearTimer?: Function }} [options] - Timing, replaceable in tests
- * @returns {{ start: Function, onEditorChange: Function, flush: Function, onHostUpdate: Function, warmUp: Function, text: Function }} Operations for the page script
+ * @returns {{ start: Function, onEditorChange: Function, flush: Function, onHostUpdate: Function, dispose: Function, warmUp: Function, text: Function }} Operations for the page script
  */
 function createPageSync(deps, options = {}) {
 	const baseDelay = options.sendDelayMs ?? SEND_DELAY_MS;
@@ -49,6 +49,7 @@ function createPageSync(deps, options = {}) {
 	let sendTimer;
 	let sendDelay = baseDelay;
 	let sentCount = 0;
+	let disposed = false;
 
 	/**
 	 * Builds the file text for the editor's current content.
@@ -68,6 +69,7 @@ function createPageSync(deps, options = {}) {
 	 * took: typing in a very large file never spends more than about a fifth of its time here.
 	 */
 	function flush() {
+		if (disposed) return;
 		clearTimer(sendTimer);
 		sendTimer = undefined;
 		const started = now();
@@ -116,6 +118,13 @@ function createPageSync(deps, options = {}) {
 			sendTimer = undefined;
 			hostText = text;
 			deps.replaceEditor(splitFrontMatter(text).body);
+		},
+
+		/** Stops the pending send, so a closed editor is never read. */
+		dispose() {
+			disposed = true;
+			clearTimer(sendTimer);
+			sendTimer = undefined;
 		},
 
 		/** Computes the first comparison while the user reads, so the first keystroke does not stall on a large file. */
