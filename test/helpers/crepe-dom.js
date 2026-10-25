@@ -10,6 +10,7 @@
  */
 const { JSDOM } = require("jsdom");
 const sync = require("../../src/markdown-sync");
+const { replaceContent } = require("../../src/editor-replace");
 
 class NoopObserver {
 	observe() {}
@@ -93,7 +94,23 @@ async function open(markdown, options = {}) {
 		/** Runs `use` with the parser access that markdown-sync and page-sync need. */
 		withTools: (use) => crepe.editor.action((ctx) => use(sync.createTools(ctx, keys, cache))),
 		/** Replaces the editor content with Markdown, as the page does for an external change. */
-		replaceBody: (body) => crepe.editor.action(utils.replaceAll(body)),
+		replaceBody: (body) =>
+			replaceContent(crepe.editor, body, {
+				replaceAll: utils.replaceAll,
+				editorViewCtx: core.editorViewCtx,
+				Selection: state.Selection,
+				TextSelection: state.TextSelection,
+			}),
+		/** The cursor, as document positions. */
+		selection: () => {
+			const { from, to } = view().state.selection;
+			return { from, to };
+		},
+		/** Puts the cursor at `position` in the document, as a click would. */
+		placeCursor(position) {
+			const editorView = view();
+			editorView.dispatch(editorView.state.tr.setSelection(state.TextSelection.create(editorView.state.doc, position)));
+		},
 		/** Types `text` at the end of the document, the way keystrokes arrive: one transaction, cursor after it. */
 		typeAtEnd(text) {
 			const editorView = view();

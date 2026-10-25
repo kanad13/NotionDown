@@ -7,6 +7,7 @@ const { describe, it, afterEach } = require("node:test");
 const assert = require("node:assert/strict");
 const { SETUPS } = require("./helpers/vscode-setups");
 const { startSession } = require("./helpers/session");
+const { sameContent } = require("../src/markdown-sync");
 
 /** A small seeded generator, so a failing run can be repeated exactly. */
 function random(seed) {
@@ -54,7 +55,9 @@ for (const setup of SETUPS) {
 				assert.ok(session.page.visibleText().endsWith(expected));
 				const onDisk = session.doc.getText();
 				assert.ok(onDisk.includes(expected.trim().replace(/ +/g, " ")), `the file lacks the typed words: ${JSON.stringify(onDisk)}`);
-				assert.equal(session.replaced, 0, "the page replaced its content although no one else changed the file");
+				const agree = session.page.withTools((tools) => sameContent(session.doc.getText(), session.sync.text(), tools));
+				assert.ok(agree, "the editor and the file differ in content after the save pipeline finished");
+				assert.equal(session.sync.text(), session.doc.getText(), "the page would still send a different text, which marks the file changed again");
 			});
 		}
 

@@ -10,9 +10,11 @@
  * Invariants:
  * - `hostText` is the file text the host holds, as far as the page knows. The page sends text only
  *   when it differs from `hostText`.
- * - A host update replaces the editor only when it carries content the editor lacks. An update that
- *   differs in formatting alone (a formatter, trimmed whitespace, a final newline) changes
- *   `hostText` and nothing else, so the user's cursor and unsent typing stay.
+ * - A host update replaces the editor's content only when it carries content the editor lacks. An
+ *   update that differs in formatting alone (a formatter, trimmed whitespace, a final newline)
+ *   changes `hostText` and nothing else, so the user's cursor, unsent typing, and the space they
+ *   just typed stay. The next send compares blocks by what they say (see markdown-sync.js), so the
+ *   editor's own style marks do not make a block look edited and the file is not changed again.
  * - An update the host made before it saw the page's latest edit is stale, because that edit is on
  *   its way to overwrite it. The edit counter in `edit` and `update` messages detects this.
  * - Plain CommonJS, like markdown-sync.js, so the page and the tests share one implementation.
