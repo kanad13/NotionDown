@@ -53,7 +53,7 @@ flowchart LR
 | :------- | :----------- | :------------- | :----------------------------------------------------------------------------- |
 | `ready`  | page to host | none           | The page script has loaded and can accept text.                                |
 | `init`   | host to page | `text`         | The document text, with LF line endings. The page creates the editor from it.  |
-| `edit`   | page to host | `text`, `count` | The user changed the document. `text` is the full Markdown. `count` numbers the page's edits from 1. |
+| `edit`   | page to host | `text`, `count`, `save` (optional) | The user changed the document. `text` is the full Markdown. `count` numbers the page's edits from 1. `save: true` marks an edit sent because the user pressed Cmd/Ctrl+S. |
 | `update` | host to page | `text`, `applied` | The document changed and the change was not the page's own write (another editor, undo, Git, a formatter, trimmed whitespace). `applied` is how many of the page's edits the host had applied when it changed. |
 
 - **Full text, not patches:**
@@ -61,6 +61,9 @@ flowchart LR
 - **Why `count` and `applied`:**
   - A save can rewrite the file while the page still has an edit in flight. That edit will overwrite the rewrite, so the page must not apply the stale report. It ignores an `update` whose `applied` is below the number of edits it has sent.
   - The host sets `applied` after a write finishes, so a change that lands while a write is in flight reads as stale.
+- **Why `save`:**
+  - A Save pressed inside the page's pause (about 0.4 s with Milkdown's own pause) is read by VS Code before the page has sent the last word. The page sends its text on the Save keydown, but VS Code has usually started the save already, so the edit lands during or after it: the file on disk lacks the word, or the formatter's result is overwritten, and the tab is marked changed.
+  - After the host applies an edit flagged `save`, it calls `document.save()` once if the document is dirty (never for an untitled document). The second save runs the formatter and the other save steps on the text that holds the word, so the file ends complete, formatted, and clean. A save that VS Code already finished makes the call a no-op.
 - **Validation:**
   - The host acts only when `type` is a string and `text` is a string.
 
@@ -72,16 +75,27 @@ flowchart LR
   - Disposing the panel disposes both subscriptions.
 - **Page:**
   - `hostText` is the file text the host holds. After each edit, the page builds the new file text from `hostText` and the editor's output, as the Content Fidelity section describes, and sends it only when it differs from `hostText`. Opening a file therefore never rewrites it.
-  - Edits are sent after a pause in typing, and at once when the tab hides. [Cost](#cost) gives the delay.
+  - Edits are sent after a pause in typing, at once when the tab hides, and at once, flagged `save`, on the Save keydown (captured before the editor sees it). [Cost](#cost) gives the delay.
 - **A host update, by kind** (`createPageSync` in `src/page-sync.js`):
   - **Stale** (`applied` below the page's sent count): ignored.
   - **Same content, different formatting** (a formatter, trimmed whitespace, a final newline): `hostText` takes the new text and the editor is not touched, so unsent typing, a just-typed space, and the cursor stay. Content is compared on the parsed document, because the editor keeps the emphasis mark it read and its serializer would call `*a*` and `_a_` different.
   - **New content** (undo, Git, another editor): the editor's content is replaced and the cursor goes back to its old position, clamped to the new document.
   - The next send compares blocks by parsed content as well, so the editor's own marks do not make a block look edited, and a save that only reformatted never marks the file changed again.
+- **Why Save is a flush plus a second save, not a merge or a shorter pause** (decided with a real VS Code, `npm run e2e`):
+  - **Flush alone** is flaky: 2 of 4 runs of the scenario left the tab marked changed, because the edit raced VS Code's save.
+  - **A host-side three-way merge** (the page sends the text it started from, the host applies only the difference) cannot reach the saved file by itself, because the race still decides whether the word is in what VS Code reads. It would also need a position mapping through whatever a formatter rewrote, which differs for Prettier, whitespace trimming, CRLF, and multi-byte text. It is not built.
+  - **A shorter pause** only narrows the window, and each send costs 30 ms at 200 blocks and 430 ms at 3,000 blocks ([Cost](#cost)), so a shorter pause would tax large files on every pause.
+  - **Flush plus a second save** passed 4 of 4 runs, and the Node tests fail when either half is removed.
 - **Why the page does not just replace its content on every update:**
   - Every rewrite after a save would then drop what the user typed since the last send. Autosave and the whitespace and final-newline steps rewrite on every autosave, and Prettier rewrites on Save.
 - **Line endings:**
   - The page works in LF. The host converts to the document's own ending when it writes and compares in LF.
+
+## Layout
+
+- **Width:**
+  - The text column fills the pane up to 72 rem (1152 px) and is centered above that. It is plain CSS (`#editor` in `src/webview/theme.css`), so it follows every resize of the window, the tab, or a split without code.
+  - Crepe pads the text by 120 px per side. The page shrinks that padding with the pane (6 % of the width, between 84 px and 120 px). The floor is the room the block handle needs, because a smaller padding puts the handle outside the pane.
 
 ## Content Fidelity
 
