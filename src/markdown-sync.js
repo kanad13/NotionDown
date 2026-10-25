@@ -254,7 +254,11 @@ function reconcileMarkdown(original, edited, tools) {
 		keyOf(tools.normalize(block.type === "definition" ? block.text : [block.text, ...definitions].join("\n\n")))
 	);
 	const editedKeys = editedBlocks.map((block) => keyOf(block.text));
-	const match = matchBlocks(originalKeys, editedKeys);
+	// Two blocks that parse alike say the same thing, whatever marks the writer chose. The editor keeps
+	// the emphasis mark it read (`_a_`), so after a formatter rewrote the file a block the user did not
+	// change would still differ from the editor's `*a*`, and the page would write the old style back.
+	const canonical = (key) => (key === "" || !tools.canonicalKey ? key : tools.canonicalKey(key));
+	const match = matchBlocks(originalKeys.map(canonical), editedKeys.map(canonical));
 
 	// The editor drops empty paragraphs at either end of a document, so those stay as the file has them.
 	const filled = originalKeys.map((key, index) => (key === "" ? -1 : index)).filter((index) => index >= 0);
@@ -292,10 +296,17 @@ function reconcileMarkdown(original, edited, tools) {
  * @param {object} ctx - Milkdown context, from `editor.action((ctx) => ...)`
  * @param {{ remarkCtx: object, parserCtx: object, serializerCtx: object }} keys - Context slices from `@milkdown/kit/core`
  * @param {Map<string, string>} cache - Memo of normalized blocks; the caller owns its lifetime
- * @returns {{ parseBlocks: Function, normalize: Function, canonicalBlocks: Function }} Tools for reconcileMarkdown and sameContent
+ * @returns {{ parseBlocks: Function, normalize: Function, canonicalBlocks: Function, canonicalKey: Function }} Tools for reconcileMarkdown and sameContent
  */
 function createTools(ctx, keys, cache = new Map()) {
 	return {
+		canonicalKey(text) {
+			try {
+				return this.canonicalBlocks(text).join("\n");
+			} catch {
+				return text;
+			}
+		},
 		canonicalBlocks(text) {
 			return ctx
 				.get(keys.remarkCtx)

@@ -13,11 +13,13 @@
  * - Mermaid runs with `securityLevel: "strict"`, so diagram text cannot inject markup.
  */
 import { Crepe } from "@milkdown/crepe";
-import { parserCtx, remarkCtx, remarkStringifyOptionsCtx, serializerCtx } from "@milkdown/kit/core";
+import { editorViewCtx, parserCtx, remarkCtx, remarkStringifyOptionsCtx, serializerCtx } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
+import { Selection, TextSelection } from "@milkdown/kit/prose/state";
 import { languages } from "@codemirror/language-data";
 import { FEATURES, applyStringifyStyle, createTools, splitFrontMatter } from "../markdown-sync";
 import { createPageSync } from "../page-sync";
+import { replaceContent } from "../editor-replace";
 // Individual files instead of common/style.css: the bundle ships without the AI, top-bar and
 // image-block features, and their styles would load for nothing.
 import "@milkdown/crepe/theme/common/prosemirror.css";
@@ -102,7 +104,7 @@ async function createEditor(text) {
 		post: (message) => vscode.postMessage(message),
 		getMarkdown: () => crepe.getMarkdown(),
 		withTools: (use) => crepe.editor.action((ctx) => use(createTools(ctx, keys, normalizedBlocks))),
-		replaceEditor: (body) => crepe.editor.action(replaceAll(body)),
+		replaceEditor: (body) => replaceContent(crepe.editor, body, { replaceAll, editorViewCtx, Selection, TextSelection }),
 	});
 	session.start(text);
 	crepe.on((listener) => listener.markdownUpdated(() => session.onEditorChange()));

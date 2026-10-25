@@ -118,6 +118,50 @@ describe("a host update that follows the page's own write", () => {
 	});
 });
 
+describe("a host update that only reformats, when nothing is unsent", () => {
+	it("leaves the editor and the cursor alone", async () => {
+		const s = await start("* one\n* two\n\nIntro *emphasis* end\n");
+		s.page.placeCursor(5);
+		const before = s.page.selection();
+		s.sync.onHostUpdate("- one\n- two\n\nIntro _emphasis_ end\n", 0);
+		assert.equal(s.replaced, 0);
+		assert.deepEqual(s.page.selection(), before);
+	});
+
+	it("keeps a space the user just typed, which the file's trimmed text lacks", async () => {
+		const s = await start("Intro\n");
+		s.typeAndSend(" alpha");
+		s.type(" ");
+		s.sync.onHostUpdate("Intro alpha\n", 1);
+		assert.equal(s.page.visibleText(), "Intro alpha ");
+	});
+
+	it("does not send the old style back, so the file is not marked changed again", async () => {
+		const s = await start("Intro *emphasis* end\n");
+		s.typeAndSend(" more");
+		const reformatted = s.posted[0].text.replace("*emphasis*", "_emphasis_");
+		s.sync.onHostUpdate(reformatted, 1);
+		s.sync.flush();
+		assert.equal(s.posted.length, 1);
+	});
+
+	it("keeps the cursor where it was when another program edits a later paragraph", async () => {
+		const s = await start("First paragraph\n\nSecond\n");
+		s.page.placeCursor(5);
+		s.sync.onHostUpdate("First paragraph\n\nSecond, changed in git\n", 0);
+		assert.equal(s.replaced, 1);
+		assert.deepEqual(s.page.selection(), { from: 5, to: 5 });
+	});
+
+	it("keeps the cursor in range when another program shortens the file", async () => {
+		const s = await start("A long first paragraph\n\nAnother long paragraph\n");
+		s.page.placeCursor(30);
+		s.sync.onHostUpdate("Short\n", 0);
+		const { from } = s.page.selection();
+		assert.ok(from >= 0 && from <= 7, `cursor at ${from}`);
+	});
+});
+
 describe("a host update that carries new content", () => {
 	it("replaces the editor for a change made elsewhere", async () => {
 		const s = await start("Hello\n");
