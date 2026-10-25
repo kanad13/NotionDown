@@ -11,9 +11,12 @@ const {
 	errors,
 	executed,
 	prompts,
+	userChoice,
 	settings,
 	vscode,
 	makeDoc,
+	makeContext,
+	makeState,
 	openEditor,
 	reset,
 } = require("./helpers/fake-vscode");
@@ -70,7 +73,7 @@ describe("custom editor", () => {
 	beforeEach(reset);
 
 	it("registers the provider for the view type declared in the manifest", () => {
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+		activate(makeContext());
 		assert.equal(registration.viewType, VIEW_TYPE);
 		assert.equal(VIEW_TYPE, require("../package.json").contributes.customEditors[0].viewType);
 	});
@@ -222,14 +225,14 @@ describe("open command", () => {
 	beforeEach(reset);
 
 	it("opens the given Markdown file in the editor", async () => {
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+		activate(makeContext());
 		const doc = makeDoc("/a.md", "x");
 		await handlers["command:notionDown.openEditor"](doc.uri);
 		assert.deepEqual(executed, [["vscode.openWith", doc.uri, VIEW_TYPE]]);
 	});
 
 	it("falls back to the active Markdown editor", async () => {
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+		activate(makeContext());
 		const doc = makeDoc("/a.md", "x");
 		vscode.window.activeTextEditor = { document: doc };
 		await handlers["command:notionDown.openEditor"]();
@@ -237,7 +240,7 @@ describe("open command", () => {
 	});
 
 	it("reports an error when there is no Markdown file", async () => {
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+		activate(makeContext());
 		vscode.window.activeTextEditor = { document: makeDoc("/a.txt", "x", { languageId: "plaintext" }) };
 		await handlers["command:notionDown.openEditor"]();
 		assert.equal(executed.length, 0);
@@ -249,12 +252,95 @@ describe("default editor", () => {
 	beforeEach(reset);
 
 	const association = (value) => ({ "*.md": value });
-	const start = () => activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+	const start = () => activate(makeContext());
 
 	it("is the manifest default for Markdown, so it applies as soon as the extension installs", () => {
 		const editor = require("../package.json").contributes.customEditors[0];
 		assert.equal(editor.priority, "default");
 		assert.deepEqual(editor.selector, [{ filenamePattern: "*.md" }]);
+	});
+
+	it("activates when a Markdown file opens, so it can speak up even when the text editor shows it", () => {
+		assert.ok(require("../package.json").activationEvents.includes("onLanguage:markdown"));
+	});
+
+	describe("the question about replacing a text-editor association", () => {
+		const later = () => new Promise((resolve) => setTimeout(resolve, 0));
+		const ask = async (state = makeState()) => {
+			activate(makeContext(state));
+			await later();
+			return state;
+		};
+
+		it("is asked once when the user's own setting keeps Markdown in the text editor", async () => {
+			settings.global.editorAssociations = association("default");
+			await ask();
+			assert.equal(prompts.length, 1);
+			assert.deepEqual(prompts[0].buttons, ["Use NotionDown", "Keep Text Editor"]);
+		});
+
+		it("removes the entry and opens the current Markdown file in NotionDown when the user agrees", async () => {
+			settings.global.editorAssociations = { "*.png": "imagePreview.previewEditor", ...association("default") };
+			const doc = makeDoc("/a.md", "x");
+			vscode.window.activeTextEditor = { document: doc };
+			userChoice.next = "Use NotionDown";
+			await ask();
+			assert.deepEqual(settings.global.editorAssociations, { "*.png": "imagePreview.previewEditor" });
+			assert.deepEqual(executed, [["vscode.openWith", doc.uri, VIEW_TYPE]]);
+		});
+
+		it("changes nothing when the user keeps the text editor, and never asks again", async () => {
+			settings.global.editorAssociations = association("default");
+			userChoice.next = "Keep Text Editor";
+			const state = await ask();
+			await ask(state);
+			assert.equal(prompts.length, 1);
+			assert.deepEqual(settings.global.editorAssociations, association("default"));
+		});
+
+		it("counts a dismissed question as an answer", async () => {
+			settings.global.editorAssociations = association("default");
+			const state = await ask();
+			await ask(state);
+			assert.equal(prompts.length, 1);
+			assert.deepEqual(settings.writes, []);
+		});
+
+		it("stays quiet when nothing overrides the manifest default", async () => {
+			await ask();
+			settings.global.editorAssociations = { "*.png": "imagePreview.previewEditor" };
+			await ask();
+			assert.equal(prompts.length, 0);
+		});
+
+		it("stays quiet when the association already names NotionDown or another editor", async () => {
+			settings.global.editorAssociations = association(VIEW_TYPE);
+			await ask();
+			settings.global.editorAssociations = association("vscode.markdown.preview.editor");
+			await ask();
+			assert.equal(prompts.length, 0);
+		});
+
+		it("stays quiet when a workspace sets the association, because that is the project's choice", async () => {
+			settings.global.editorAssociations = association("default");
+			settings.workspace.editorAssociations = association("default");
+			await ask();
+			assert.equal(prompts.length, 0);
+		});
+
+		it("does not break the extension when the question fails", async () => {
+			settings.global.editorAssociations = association("default");
+			const original = vscode.window.showInformationMessage;
+			vscode.window.showInformationMessage = async () => {
+				throw new Error("no window");
+			};
+			try {
+				await ask();
+			} finally {
+				vscode.window.showInformationMessage = original;
+			}
+			assert.equal(typeof handlers["command:notionDown.openEditor"], "function");
+		});
 	});
 
 	it("never asks the user a question when an editor opens", async () => {
@@ -289,6 +375,16 @@ describe("default editor", () => {
 		start();
 		await handlers["command:notionDown.useTextEditorAsDefault"]();
 		assert.deepEqual(settings.global.editorAssociations, association("default"));
+	});
+
+	it("ships the title-bar icon files that the manifest names, not a codicon the oldest supported editor may lack", () => {
+		const fs = require("node:fs");
+		const path = require("node:path");
+		const command = require("../package.json").contributes.commands.find((c) => c.command === "notionDown.openEditor");
+		assert.equal(typeof command.icon, "object");
+		for (const file of [command.icon.light, command.icon.dark]) {
+			assert.ok(fs.existsSync(path.join(__dirname, "..", file)), `${file} exists`);
+		}
 	});
 
 	it("declares both commands in the manifest", () => {
