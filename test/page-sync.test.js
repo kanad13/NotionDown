@@ -192,6 +192,17 @@ describe("a host update that carries new content", () => {
 	});
 });
 
+describe("closing the editor", () => {
+	it("cancels a pending send, so a destroyed editor is never read", async () => {
+		const s = await start("Hello\n");
+		s.type(" there");
+		s.sync.onEditorChange();
+		s.sync.dispose();
+		s.sync.flush();
+		assert.deepEqual(s.posted, []);
+	});
+});
+
 describe("edits sent to the host", () => {
 	it("numbers each edit, so the host can say how many it applied", async () => {
 		const s = await start("Hello\n");
