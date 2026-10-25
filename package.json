@@ -100,6 +100,7 @@
 	"scripts": {
 		"build": "webpack",
 		"lint": "eslint .",
+		"e2e": "node tools/e2e/run.js",
 		"test": "npm run build && node --test \"test/*.test.js\" && npm run lint",
 		"package": "npm run build && vsce package",
 		"publish": "npm run build && vsce publish"
