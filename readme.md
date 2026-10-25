@@ -69,7 +69,6 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - Two dollar signs in one paragraph, such as two prices, can display as math. The text in the file does not change.
 - Syntax that Milkdown does not support, such as footnotes, shows as text.
 - A Mermaid diagram keeps its color theme until you reopen the file.
-- A Save pressed within about half a second of your last key can save the file without that last word. The tab shows the unsaved marker again, and the next Save includes it.
 
 ## Privacy and Security
 
