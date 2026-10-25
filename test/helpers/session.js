@@ -118,6 +118,7 @@ async function startSession({ text, setup = { participants: [] }, latencyMs = 3,
 		},
 		stop() {
 			stopped = true;
+			sync.dispose();
 			clearTimeout(saveTimer);
 			vscode.workspace.applyEdit = applyEdit;
 			page.destroy();
