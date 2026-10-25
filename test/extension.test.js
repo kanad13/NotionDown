@@ -138,9 +138,40 @@ describe("custom editor", () => {
 		doc.setText("A");
 		handlers.docChange({ document: doc, contentChanges: [{ text: "A" }] });
 		assert.deepEqual(panel.posted, [
-			{ type: "update", text: "X" },
-			{ type: "update", text: "A" },
+			{ type: "update", text: "X", applied: 0 },
+			{ type: "update", text: "A", applied: 0 },
 		]);
+	});
+
+	it("tells the page how many of its edits it had applied when the file changed", async () => {
+		const doc = makeDoc("/a.md", "0");
+		const panel = await openEditor(activate, doc);
+		await panel.receive({ type: "edit", text: "A", count: 1 });
+		await panel.receive({ type: "edit", text: "B", count: 2 });
+		doc.setText("B formatted");
+		handlers.docChange({ document: doc, contentChanges: [{ text: "x" }] });
+		assert.deepEqual(panel.posted, [{ type: "update", text: "B formatted", applied: 2 }]);
+	});
+
+	it("counts an edit as applied only after its write finished, so a change that lands first reads as stale", async () => {
+		const doc = makeDoc("/a.md", "0");
+		const panel = await openEditor(activate, doc);
+		const write = panel.receive({ type: "edit", text: "A", count: 1 });
+		// A formatter's change event reaches the host before the write's promise settles.
+		doc.setText("formatted");
+		handlers.docChange({ document: doc, contentChanges: [{ text: "x" }] });
+		await write;
+		assert.deepEqual(panel.posted, [{ type: "update", text: "formatted", applied: 0 }]);
+	});
+
+	it("keeps counting edits the document already holds, and ignores a count that is not an integer", async () => {
+		const doc = makeDoc("/a.md", "same");
+		const panel = await openEditor(activate, doc);
+		await panel.receive({ type: "edit", text: "same", count: 1 });
+		await panel.receive({ type: "edit", text: "other", count: "2" });
+		doc.setText("elsewhere");
+		handlers.docChange({ document: doc, contentChanges: [{ text: "x" }] });
+		assert.equal(panel.posted[0].applied, 1);
 	});
 
 	it("forwards an external change (another editor, undo, git checkout) to the page", async () => {
@@ -148,7 +179,7 @@ describe("custom editor", () => {
 		const panel = await openEditor(activate, doc);
 		doc.setText("changed\r\nelsewhere");
 		handlers.docChange({ document: doc, contentChanges: [{ text: "x" }] });
-		assert.deepEqual(panel.posted, [{ type: "update", text: "changed\nelsewhere" }]);
+		assert.deepEqual(panel.posted, [{ type: "update", text: "changed\nelsewhere", applied: 0 }]);
 	});
 
 	it("ignores changes to other documents and dirty-state events", async () => {
