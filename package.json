@@ -20,7 +20,10 @@
 	],
 	"keywords": [
 		"markdown",
+		"markdown-editor",
+		"visual-markdown",
 		"notion",
+		"notion-style",
 		"wysiwyg",
 		"editor",
 		"md",
@@ -30,6 +33,10 @@
 		"milkdown",
 		"block-editor",
 		"live-preview",
+		"katex",
+		"latex",
+		"table-editor",
+		"notes",
 		"privacy"
 	],
 	"qna": "marketplace",

@@ -1,24 +1,39 @@
-# NotionDown
+# NotionDown: a visual Markdown editor for VS Code
 
-A Notion-style editor for Markdown files in VS Code. You edit on one canvas, and the file on disk stays plain Markdown.
+**Write Markdown the way you write in Notion.** Type `/` for headings, lists, tables, and code. Drag blocks to reorder them. See diagrams and math as you write. The file on disk stays plain Markdown, so Git, your docs site, and every other tool keep working.
 
-## Overview
+![NotionDown editing a note with a task list and a Mermaid diagram, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/overview-light.png)
 
-NotionDown opens a Markdown file as a block editor. There is no split screen and no preview pane.
+## Why NotionDown
 
-- **What you get:**
-  - Slash commands: type `/` for headings, lists, tables, code blocks, and quotes.
-  - Drag handles to reorder blocks, and a toolbar for inline formatting.
-  - Visual tables, task lists, and code blocks with syntax highlighting.
-  - Live Mermaid diagrams under `mermaid` code blocks.
-- **What you do not get:**
-  - Settings, accounts, or a proprietary file format. The colors follow your VS Code theme.
-- **Why it is small:**
-  - Everything runs inside VS Code, and the extension makes no network request for code.
+- **One canvas, no preview pane.** You edit the finished page. There is no split screen and no scroll sync.
+- **Plain Markdown, clean Git diffs.** Lines you did not touch are written back byte for byte, so a small edit is a small diff.
+- **Fits your editor.** Colors follow your VS Code theme, light or dark, and the page fills the editor, tab, or split you give it and resizes with it.
+- **Private by design.** No tracking, no accounts, and no network request for code. Everything runs inside VS Code.
+- **Nothing to set up.** Install it, open a `.md` file, and write.
 
-| Light theme                                                                | Dark theme                                                               |
-| :------------------------------------------------------------------------- | :----------------------------------------------------------------------- |
-| ![A note with a task list and a Mermaid diagram, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/overview-light.png) | ![A note with a task list and a Mermaid diagram, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/overview-dark.png) |
+## What you can do
+
+### Type `/` for any block
+
+Headings, bullet, numbered and task lists, quotes, tables, code blocks, math, and diagrams. Select text for a floating toolbar, and drag the handle beside a block to move it.
+
+![The slash menu in NotionDown, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/slash-dark.png)
+
+### Tables, code, math, and diagrams in place
+
+- **Tables:** add, remove, and align rows and columns visually.
+- **Code:** editable blocks with syntax highlighting for the languages CodeMirror supports.
+- **Math:** inline `$...$` and block `$$...$$` render with KaTeX, and the source stays in the file.
+- **Diagrams:** a `mermaid` code block draws its diagram under the source.
+
+![Math, code, a table, and a quote in NotionDown, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/details-light.png)
+
+### Stays in sync with everything else
+
+Changes made in another editor, an undo, or a Git checkout appear in NotionDown, and the reverse. Save with Cmd/Ctrl+S at any moment, even a split second after your last key: the last word is in the file, and your formatter (Prettier, whitespace trimming, a final newline) still runs.
+
+![A note with a task list and a Mermaid diagram, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/overview-dark.png)
 
 ## Install
 
@@ -26,49 +41,34 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 2. Search for "NotionDown", or for the identifier `KunalPathak.notiondown`.
 3. Select **Install**.
 
+NotionDown opens every `.md` file by default. Open one and start writing.
+
 ## Use
 
 1. Open a Markdown file.
-2. Select the **Open in NotionDown** rocket icon in the editor title bar (it replaces the text editor tab), or right-click the file in the Explorer and choose **Open in NotionDown**.
-3. Edit. Save as you would any file.
+2. To open a file in NotionDown by hand, select the **Open in NotionDown** rocket icon in the editor title bar (it replaces the text editor tab), or right-click the file in the Explorer and choose **Open in NotionDown**.
+3. Edit and save as you would any file.
 
-**Default editor:**
+**Prefer VS Code's text editor for Markdown?**
 
-- NotionDown opens every `.md` file by default, from the moment it is installed.
-- To use VS Code's text editor for Markdown instead, run **Markdown: Use the VS Code Text Editor as the Default Markdown Editor** from the Command Palette. **Markdown: Use NotionDown as the Default Markdown Editor** reverses it.
+- Run **Markdown: Use the VS Code Text Editor as the Default Markdown Editor** from the Command Palette. **Markdown: Use NotionDown as the Default Markdown Editor** reverses it.
 - Both commands write one entry (`"*.md"`) to your `workbench.editorAssociations` user setting, so you can also edit it in settings.json.
-- If your own `workbench.editorAssociations` setting maps `*.md` to the text editor, VS Code keeps using it. NotionDown asks whether to replace that entry, and asks again in up to two later sessions if you ignore it. Pressing either button ends the question, and the two commands above stay available.
+- If your own `workbench.editorAssociations` setting maps `*.md` to the text editor, VS Code keeps using it. NotionDown asks once whether to replace that entry, and asks again in up to two later sessions if you ignore it. Pressing either button ends the question.
 - To open a single file in the text editor, use **Reopen Editor With... > Text Editor**.
 
-## Features
+## How it treats your file
 
-- **Blocks:**
-  - Slash menu, drag-to-reorder, and a floating formatting toolbar.
-- **Tables:**
-  - Add, remove, and align rows and columns visually.
-- **Code:**
-  - Syntax highlighting for many languages in an editable code block.
-- **Diagrams:**
-  - A `mermaid` code block shows its diagram under the source.
-- **Math:**
-  - Inline `$...$` and block `$$...$$` math render with KaTeX, and the source stays in the file.
-- **One source of truth:**
-  - Edits made in another editor, an undo, or a Git checkout appear in NotionDown, and the reverse.
-
-**Your file stays yours:**
-
-- Lines you did not edit are written back byte for byte. A block you edited is written in NotionDown's style: `-` bullets, padded table columns, and a backslash before a character that Markdown could read as formatting. A `#` that cannot start a heading, such as `#hashtag`, gets no backslash.
-- Empty paragraphs you add are not written to the file.
+- A block you edited is written in NotionDown's style: `-` bullets, padded table columns, and a backslash before a character that Markdown could read as formatting. A `#` that cannot start a heading, such as `#hashtag`, gets no backslash.
 - Enter starts a new paragraph, which the file separates with a blank line. Shift+Enter breaks the line inside a paragraph and writes a backslash at the end of it, which every Markdown renderer reads as a line break.
-- A single line break in the file shows as a space in NotionDown, as it does in most Markdown renderers.
-- Front matter is kept out of the editor and left unchanged.
+- Empty paragraphs you add are not written to the file, and front matter is kept out of the editor and left unchanged.
+- A single line break in the file shows as a space, as in most Markdown renderers.
 
-**Limits:**
+## Good to know
 
-- Images written as `![alt](path)` display. NotionDown does not insert, paste, or drag-and-drop images, and will not.
+- Images written as `![alt](path)` display. NotionDown focuses on text, so it does not insert, paste, or drag-and-drop images.
 - Two dollar signs in one paragraph, such as two prices, can display as math. The text in the file does not change.
 - Syntax that Milkdown does not support, such as footnotes, shows as text.
-- A Mermaid diagram keeps its color theme until you reopen the file.
+- A Mermaid diagram changes its color theme the next time you open the file.
 
 ## Privacy and Security
 
