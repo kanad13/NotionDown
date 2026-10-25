@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-10-25
+
+### Changed
+
+- Code blocks highlight every language that CodeMirror supports again. Version 0.1.1 limited highlighting to 29 languages. This release keeps all of them in one file, so the package still avoids the vsce file-count warning.
+- Publishing to Open VSX is checked through the shared release workflow.
+
 ## [0.1.1] - 2026-10-25
 
 ### Changed
