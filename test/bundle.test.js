@@ -49,10 +49,13 @@ describe("webpack bundle", () => {
 		);
 	});
 
-	it("ships a short language list, so the package is not hundreds of lazy script files", () => {
-		// The full CodeMirror list emitted about 180 script files and drew a vsce bundling warning.
-		// Crepe imports that list itself, so this fails when the webpack alias to src/webview/languages.js is lost.
+	it("groups the code languages into one lazy file, so the package is not hundreds of script files", () => {
+		// Unbundled, the CodeMirror languages emitted about 180 script files and drew a vsce bundling warning.
 		const scripts = fs.readdirSync(path.join(dist, "webview")).filter((f) => f.endsWith(".js"));
-		assert.ok(scripts.length <= 110, `${scripts.length} script files in dist/webview`);
+		assert.ok(
+			scripts.some((f) => f.startsWith("code-languages.")),
+			"no code-languages chunk emitted"
+		);
+		assert.ok(scripts.length <= 100, `${scripts.length} script files in dist/webview`);
 	});
 });
