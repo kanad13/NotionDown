@@ -14,7 +14,7 @@
 import { Crepe } from "@milkdown/crepe";
 import { parserCtx, remarkCtx, remarkStringifyOptionsCtx, serializerCtx } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
-import { languages } from "./languages";
+import { languages } from "@codemirror/language-data";
 import { FEATURES, applyStringifyStyle, createTools, reconcileMarkdown, splitFrontMatter } from "../markdown-sync";
 // Individual files instead of common/style.css: the bundle ships without the AI, top-bar and
 // image-block features, and their styles would load for nothing.

@@ -42,7 +42,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - **Tables:**
   - Add, remove, and align rows and columns visually.
 - **Code:**
-  - Syntax highlighting for 29 common languages in an editable code block.
+  - Syntax highlighting for many languages in an editable code block.
 - **Diagrams:**
   - A `mermaid` code block shows its diagram under the source.
 - **Math:**
@@ -96,5 +96,6 @@ The security model is in [docs/architecture.md](docs/architecture.md#security-mo
 - Read [AGENTS.md](AGENTS.md) for the rules, and [docs/workflows.md](docs/workflows.md) for the procedure that fits your request.
 - Set up with `npm ci`, then check with `npm test`. [docs/development.md](docs/development.md) covers the daily workflow, and [docs/testing.md](docs/testing.md) covers the checks.
 - [docs/decisions.md](docs/decisions.md) lists ideas that were evaluated and not built.
+- [docs/sibling-extensions.md](docs/sibling-extensions.md) lists the other extensions published as KunalPathak and the files they share.
 
 Licensed under the [MIT License](LICENSE).

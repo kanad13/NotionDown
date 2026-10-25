@@ -56,9 +56,6 @@ const webviewConfig = {
 	},
 	resolve: {
 		extensions: [".js"],
-		// Crepe imports the full language list itself, which would bring back about 140 lazy files.
-		// Pointing it at the trimmed list keeps the package small (see src/webview/languages.js).
-		alias: { "@codemirror/language-data$": path.resolve(__dirname, "src/webview/languages.js") },
 	},
 	module: {
 		rules: [
@@ -81,6 +78,21 @@ const webviewConfig = {
 				type: "asset/resource",
 			},
 		],
+	},
+	optimization: {
+		splitChunks: {
+			// CodeMirror ships each of its ~140 languages as a separate lazy module. Left alone, webpack
+			// emits one file per language and `vsce` warns that the package is not bundled. One shared
+			// file keeps every language, and a page loads it only when a code block names a language.
+			cacheGroups: {
+				codeLanguages: {
+					test: /[\\/]node_modules[\\/]@codemirror[\\/](lang-|legacy-modes)/,
+					name: "code-languages",
+					chunks: "async",
+					enforce: true,
+				},
+			},
+		},
 	},
 	plugins: [new MiniCssExtractPlugin({ filename: "main.css" })],
 	performance: { hints: false },
