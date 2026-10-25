@@ -66,6 +66,8 @@ async function typeRun(context, { seed, explicitSave, saveAfterMs, pauses }) {
 		expected += `${word} `;
 		// Look many times during the pause: a replaced page can restore itself later and hide the loss.
 		const pause = pauses[Math.floor(next() * pauses.length)];
+		// Save pressed the moment the last key is released: no observation pause after the last word.
+		if (explicitSave && saveAfterMs === 0 && word === WORDS[WORDS.length - 1]) break;
 		const until = Date.now() + pause;
 		do {
 			const shown = await editor.text();
@@ -136,6 +138,14 @@ const SCENARIOS = [
 		settings: { "editor.formatOnSave": true, "[markdown]": { "editor.defaultFormatter": "esbenp.prettier-vscode" } },
 		needsPrettier: true,
 		explicitSave: true,
+		expectRewritten: (text) => text.includes("_emphasis_") && text.includes("- one"),
+	}),
+	typing({
+		name: "typing, Prettier on Save pressed the moment the last key is released",
+		settings: { "editor.formatOnSave": true, "[markdown]": { "editor.defaultFormatter": "esbenp.prettier-vscode" } },
+		needsPrettier: true,
+		explicitSave: true,
+		saveAfterMs: 0,
 		expectRewritten: (text) => text.includes("_emphasis_") && text.includes("- one"),
 	}),
 	{
