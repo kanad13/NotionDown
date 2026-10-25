@@ -5,10 +5,16 @@ body {
 	background: var(--vscode-editor-background);
 }
 
+/* The column follows the pane: it fills the width up to a cap that keeps lines readable on very wide windows. */
 #editor {
-	max-width: 52rem;
+	max-width: 72rem;
 	margin: 0 auto;
-	padding: 1.5rem 1rem 6rem;
+	padding: 1.5rem 0 6rem;
+}
+
+/* Crepe pads the text by a fixed 120px per side. The side padding shrinks with the pane, down to the 84px that the block handle needs. */
+.milkdown .ProseMirror {
+	padding: 60px clamp(84px, 6vw, 120px);
 }
 
 .milkdown {
