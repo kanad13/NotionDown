@@ -33,6 +33,13 @@ module.exports = [
 		},
 	},
 	{
+		// The end-to-end tool runs in Node and uses its built-in WebSocket and fetch.
+		files: ["tools/e2e/**/*.js"],
+		languageOptions: {
+			globals: { WebSocket: "readonly", fetch: "readonly" },
+		},
+	},
+	{
 		// The webview bundle is ES modules that run in a browser, not CommonJS in Node.
 		files: ["src/webview/**/*.js"],
 		languageOptions: {
