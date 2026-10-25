@@ -16,6 +16,7 @@ This extension is a Notion-style Markdown editor in a VS Code custom editor. It 
 
 - Host: `src/extension.js`
 - Fidelity: `src/markdown-sync.js` (pure CommonJS, shared by the page and the tests)
+- Page sync: `src/page-sync.js` and `src/editor-replace.js` (CommonJS, shared by the page and the tests): when the page sends edits and how it treats the host's updates
 - Page: `src/webview/main.js` and `src/webview/theme.css`, with the shell in `src/webview.html`
 - Build: webpack, two bundles → `dist/extension.js` and `dist/webview/`
 - Closure-based state in the host (no classes, no globals)
@@ -63,7 +64,8 @@ Before adding, upgrading, or auditing any dependency (npm package or build tool)
 - Host logic in `src/extension.js` unless it exceeds ~1500 lines
 - One custom editor type (`notionDown.editor`), registered with `priority: "default"`; a user opts out through `workbench.editorAssociations`, which the two default-editor commands write, and the extension adds no setting of its own
 - Every write from the page goes through `src/markdown-sync.js`, so blocks the user did not edit keep their original text. Any new Markdown construct needs a fixture in `test/fixtures/sync/`
-- The host and the page exchange Markdown strings in four messages only: `ready`, `init`, `edit`, `update`
+- The host and the page exchange Markdown strings in four messages only: `ready`, `init`, `edit`, `update`. `edit` carries the page's edit count and `update` carries the count the host had applied, so a stale update is ignored
+- An `update` replaces the editor's content only when it carries content the editor lacks; a change in formatting alone never does, because it would drop what the user typed
 - No TypeScript, no UI framework of our own
 - No remote scripts: everything the page runs ships in the `.vsix`, and `script-src` allows only the per-render nonce
 - Mermaid loads through a dynamic `import()` and runs with `securityLevel: "strict"`
@@ -98,6 +100,8 @@ When a task touches 3+ files or requires multiple related edits:
 
 - The testing strategy, commands, and manual smoke check live in `docs/testing.md`; update it when a workflow, contract, or tool changes
 - Manual testing via F5 debug launch, and in a browser with `node tools/harness.js`
+- `npm run e2e` runs the scenarios in a real VS Code with a private profile; run it after a change to the host, `src/page-sync.js`, the manifest, or the save path, and before a release
+- Reproduce a user-reported failure at the layer where the user saw it, and treat user settings (autosave, format on save, editor associations) as inputs (see `docs/testing.md`)
 - Round-trip tests run the real Crepe editor under jsdom; run them before and after any change to Milkdown, the stringify style, or `src/markdown-sync.js`
 - Test file at `examples/test.md` with diverse Markdown content and a Mermaid diagram
 - `npm test` and `npm audit --omit=dev` must pass before any work is considered complete

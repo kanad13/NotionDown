@@ -16,6 +16,8 @@ NotionDown is a VS Code custom text editor for Markdown files. Two parts share t
 - **Page** (`src/webview/main.js`):
   - Runs Milkdown Crepe, which gives the Notion-style blocks, slash menu, drag handles, and table editing.
   - Renders Mermaid diagrams under code blocks.
+- **Page sync** (`src/page-sync.js`, `src/editor-replace.js`):
+  - Decides when the page sends its edits and what it does when the host reports a change. Plain CommonJS that takes the editor as functions, so Node tests run it against the real editor.
 - **Page shell** (`src/webview.html`):
   - A template that the host fills with a nonce and resource addresses.
 
@@ -33,6 +35,9 @@ flowchart LR
 - **Why a custom editor, not a preview panel:**
   - The page is the only view of the file, so there is no split screen and no scroll sync problem.
   - `priority: "default"` makes NotionDown open every `.md` file as soon as it installs, which is the product's purpose.
+- **When a user setting overrides the default:**
+  - `workbench.editorAssociations` in the user's own settings can map `*.md` to the text editor, and VS Code then never opens NotionDown. The extension activates on Markdown (`onLanguage:markdown`) so that it can notice, and asks once whether to remove that entry.
+  - The question appears only for a user-level entry that names the text editor. A workspace entry is a project's choice, and an entry for another editor is not questioned. Any answer ends the question, and the two commands below stay available.
 - **Opting out:**
   - VS Code's own `workbench.editorAssociations` is the one place a user overrides a default, so the extension adds no setting of its own that would have to fight it.
   - **Use the VS Code Text Editor as the Default Markdown Editor** writes `"*.md": "default"` to the user setting, and **Use NotionDown as the Default Markdown Editor** removes that entry. Neither touches an entry that belongs to another editor, and neither copies workspace settings into the user setting.
@@ -46,11 +51,14 @@ flowchart LR
 | :------- | :----------- | :------------- | :----------------------------------------------------------------------------- |
 | `ready`  | page to host | none           | The page script has loaded and can accept text.                                |
 | `init`   | host to page | `text`         | The document text, with LF line endings. The page creates the editor from it.  |
-| `edit`   | page to host | `text`         | The user changed the document. `text` is the full Markdown.                    |
-| `update` | host to page | `text`         | The document changed from outside the page (another editor, undo, Git).        |
+| `edit`   | page to host | `text`, `count` | The user changed the document. `text` is the full Markdown. `count` numbers the page's edits from 1. |
+| `update` | host to page | `text`, `applied` | The document changed and the change was not the page's own write (another editor, undo, Git, a formatter, trimmed whitespace). `applied` is how many of the page's edits the host had applied when it changed. |
 
 - **Full text, not patches:**
   - Markdown files are small, and a full-text message cannot drift out of sync.
+- **Why `count` and `applied`:**
+  - A save can rewrite the file while the page still has an edit in flight. That edit will overwrite the rewrite, so the page must not apply the stale report. It ignores an `update` whose `applied` is below the number of edits it has sent.
+  - The host sets `applied` after a write finishes, so a change that lands while a write is in flight reads as stale.
 - **Validation:**
   - The host acts only when `type` is a string and `text` is a string.
 
@@ -63,6 +71,13 @@ flowchart LR
 - **Page:**
   - `hostText` is the file text the host holds. After each edit, the page builds the new file text from `hostText` and the editor's output, as the Content Fidelity section describes, and sends it only when it differs from `hostText`. Opening a file therefore never rewrites it.
   - Edits are sent after a pause in typing, and at once when the tab hides. [Cost](#cost) gives the delay.
+- **A host update, by kind** (`createPageSync` in `src/page-sync.js`):
+  - **Stale** (`applied` below the page's sent count): ignored.
+  - **Same content, different formatting** (a formatter, trimmed whitespace, a final newline): `hostText` takes the new text and the editor is not touched, so unsent typing, a just-typed space, and the cursor stay. Content is compared on the parsed document, because the editor keeps the emphasis mark it read and its serializer would call `*a*` and `_a_` different.
+  - **New content** (undo, Git, another editor): the editor's content is replaced and the cursor goes back to its old position, clamped to the new document.
+  - The next send compares blocks by parsed content as well, so the editor's own marks do not make a block look edited, and a save that only reformatted never marks the file changed again.
+- **Why the page does not just replace its content on every update:**
+  - Every rewrite after a save would then drop what the user typed since the last send. Autosave and the whitespace and final-newline steps rewrite on every autosave, and Prettier rewrites on Save.
 - **Line endings:**
   - The page works in LF. The host converts to the document's own ending when it writes and compares in LF.
 
