@@ -145,6 +145,8 @@ function createProvider(extensionUri) {
 		/** Texts this panel wrote that the document-change event has not yet reported. */
 		const pendingEchoes = new Set();
 		let writeQueue = Promise.resolve();
+		/** How many of the page's edits this host has applied, as the page counted them; sent with every update. */
+		let appliedEdits = 0;
 
 		/**
 		 * Replaces the document text with the page's Markdown, keeping the document's line endings.
@@ -171,7 +173,12 @@ function createProvider(extensionUri) {
 				webview.postMessage({ type: "init", text: normalizeEol(document.getText()) });
 			} else if (message.type === "edit" && typeof message.text === "string") {
 				// Edits apply in arrival order so a slow write cannot overwrite a newer one.
-				writeQueue = writeQueue.then(() => applyEdit(message.text)).catch(() => {});
+				writeQueue = writeQueue
+					.then(() => applyEdit(message.text))
+					.catch(() => {})
+					.then(() => {
+						if (Number.isSafeInteger(message.count)) appliedEdits = message.count;
+					});
 				return writeQueue;
 			}
 		});
@@ -181,7 +188,7 @@ function createProvider(extensionUri) {
 			if (event.contentChanges.length === 0) return;
 			const text = normalizeEol(document.getText());
 			if (pendingEchoes.delete(text)) return;
-			webview.postMessage({ type: "update", text });
+			webview.postMessage({ type: "update", text, applied: appliedEdits });
 		});
 
 		panel.onDidDispose(() => {

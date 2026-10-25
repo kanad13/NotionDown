@@ -189,6 +189,54 @@ function gapBetween(original, blocks, before, after) {
 }
 
 /**
+ * Tells whether two file texts say the same thing, whatever their formatting.
+ *
+ * Why: other tools rewrite the file after the page wrote it: a formatter on save, trimmed
+ * whitespace, a final newline. Those changes carry no new content, so the page must keep what it
+ * shows instead of replacing it, or it would drop what the user typed in the meantime. The
+ * comparison is on the parsed document, not on text: `*a*` and `_a_` parse alike, and so do a
+ * padded and an unpadded table. The editor's serializer keeps the emphasis marker it read, so
+ * comparing its output would call those two different.
+ *
+ * @param {string} a - File text
+ * @param {string} b - File text
+ * @param {{ canonicalBlocks: (text: string) => string[] }} tools - Parser access; see createTools
+ * @returns {boolean} True when the texts differ at most in formatting
+ */
+function sameContent(a, b, tools) {
+	const one = splitFrontMatter(a);
+	const two = splitFrontMatter(b);
+	if (trimLineEnds(one.front).trim() !== trimLineEnds(two.front).trim()) return false;
+	const left = tools.canonicalBlocks(one.body);
+	const right = tools.canonicalBlocks(two.body);
+	return left.length === right.length && left.every((block, index) => block === right[index]);
+}
+
+/**
+ * Removes spaces and tabs at the end of every line.
+ *
+ * @param {string} text - Any text
+ * @returns {string} Text without trailing spaces or tabs
+ */
+function trimLineEnds(text) {
+	return text.replace(/[ \t]+$/gm, "");
+}
+
+/**
+ * Reduces a parsed node to a string that is equal for equal content: no positions, and no
+ * trailing spaces in text, which a save-time tool may trim.
+ *
+ * @param {object} node - mdast node from the editor's parser
+ * @returns {string} Canonical JSON for the node
+ */
+function canonicalNode(node) {
+	return JSON.stringify(node, (key, value) => {
+		if (key === "position") return undefined;
+		return typeof value === "string" ? trimLineEnds(value) : value;
+	});
+}
+
+/**
  * Builds the file text for an edited document.
  *
  * @param {string} original - The file's Markdown body (no front matter), as the host holds it
@@ -244,10 +292,17 @@ function reconcileMarkdown(original, edited, tools) {
  * @param {object} ctx - Milkdown context, from `editor.action((ctx) => ...)`
  * @param {{ remarkCtx: object, parserCtx: object, serializerCtx: object }} keys - Context slices from `@milkdown/kit/core`
  * @param {Map<string, string>} cache - Memo of normalized blocks; the caller owns its lifetime
- * @returns {{ parseBlocks: Function, normalize: Function }} Tools for reconcileMarkdown
+ * @returns {{ parseBlocks: Function, normalize: Function, canonicalBlocks: Function }} Tools for reconcileMarkdown and sameContent
  */
 function createTools(ctx, keys, cache = new Map()) {
 	return {
+		canonicalBlocks(text) {
+			return ctx
+				.get(keys.remarkCtx)
+				.parse(text)
+				.children.filter((node) => !(node.type === "html" && EMPTY_LINE_PLACEHOLDER.test(node.value.trim())))
+				.map(canonicalNode);
+		},
 		parseBlocks(text) {
 			return ctx
 				.get(keys.remarkCtx)
@@ -281,4 +336,12 @@ function applyStringifyStyle(ctx, keys) {
 	ctx.update(keys.remarkStringifyOptionsCtx, (options) => ({ ...options, ...STRINGIFY_STYLE }));
 }
 
-module.exports = { FEATURES, applyStringifyStyle, splitFrontMatter, matchBlocks, reconcileMarkdown, createTools };
+module.exports = {
+	FEATURES,
+	applyStringifyStyle,
+	splitFrontMatter,
+	matchBlocks,
+	reconcileMarkdown,
+	sameContent,
+	createTools,
+};

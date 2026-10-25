@@ -61,6 +61,7 @@ async function open(markdown, options = {}) {
 	const { Crepe } = await import("@milkdown/crepe");
 	const core = await import("@milkdown/kit/core");
 	const utils = await import("@milkdown/kit/utils");
+	const state = await import("@milkdown/kit/prose/state");
 	const keys = {
 		remarkCtx: core.remarkCtx,
 		parserCtx: core.parserCtx,
@@ -78,6 +79,7 @@ async function open(markdown, options = {}) {
 	crepe.editor.config((ctx) => sync.applyStringifyStyle(ctx, keys));
 	await crepe.create();
 	const cache = new Map();
+	const view = () => crepe.editor.action((ctx) => ctx.get(core.editorViewCtx));
 	return {
 		crepe,
 		/** The editor's DOM root, for assertions about what the user would see. */
@@ -88,6 +90,19 @@ async function open(markdown, options = {}) {
 		},
 		/** The editor's raw serialization. */
 		serialize: () => crepe.getMarkdown(),
+		/** Runs `use` with the parser access that markdown-sync and page-sync need. */
+		withTools: (use) => crepe.editor.action((ctx) => use(sync.createTools(ctx, keys, cache))),
+		/** Replaces the editor content with Markdown, as the page does for an external change. */
+		replaceBody: (body) => crepe.editor.action(utils.replaceAll(body)),
+		/** Types `text` at the end of the document, the way keystrokes arrive: one transaction, cursor after it. */
+		typeAtEnd(text) {
+			const editorView = view();
+			const end = editorView.state.doc.content.size - 1;
+			const selection = state.TextSelection.create(editorView.state.doc, end);
+			editorView.dispatch(editorView.state.tr.setSelection(selection).insertText(text));
+		},
+		/** The text the user sees, without markup. */
+		visibleText: () => view().state.doc.textContent,
 		/** The file text the page would send to the host. */
 		save: () =>
 			front +
