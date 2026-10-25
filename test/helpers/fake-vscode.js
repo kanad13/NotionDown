@@ -195,7 +195,7 @@ function makePanel() {
  * @returns {Promise<object>} The fake panel, already resolved by the registered provider
  */
 async function openEditor(activate, doc, state = makeState()) {
-	activate({ extensionUri: { scheme: "file", path: "/ext" }, subscriptions: [], globalState: state });
+	activate(makeContext(state));
 	const panel = makePanel();
 	await registration.provider.resolveCustomTextEditor(doc, panel, { isCancellationRequested: false });
 	return panel;
@@ -209,6 +209,16 @@ async function openEditor(activate, doc, state = makeState()) {
 function makeState() {
 	const values = new Map();
 	return { get: (key) => values.get(key), update: async (key, value) => void values.set(key, value) };
+}
+
+/**
+ * Builds an extension context like the one VS Code passes to `activate`.
+ *
+ * @param {object} [state] - Global state from makeState(); a new one by default
+ * @returns {object} Context with the members the extension reads
+ */
+function makeContext(state = makeState()) {
+	return { extensionUri: { scheme: "file", path: "/ext" }, subscriptions: [], globalState: state };
 }
 
 /**
@@ -241,6 +251,7 @@ module.exports = {
 	makeDoc,
 	makePanel,
 	makeState,
+	makeContext,
 	openEditor,
 	reset,
 };

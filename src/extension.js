@@ -27,6 +27,9 @@ const DEFAULT_PATTERN = "*.md";
 /** The `workbench.editorAssociations` value that means VS Code's own text editor. */
 const TEXT_EDITOR_VIEW_TYPE = "default";
 
+/** Key in the extension's global state that records the default-editor question was asked. */
+const PROMPTED_KEY = "notionDown.defaultPrompted";
+
 /** Upper bound for remembered writes whose echo has not arrived; a leak guard, not a tuning knob. */
 const MAX_PENDING_ECHOES = 64;
 
@@ -107,6 +110,42 @@ async function chooseDefaultEditor(notionDown) {
 		associations[DEFAULT_PATTERN] = TEXT_EDITOR_VIEW_TYPE;
 	}
 	await config.update("editorAssociations", associations, vscode.ConfigurationTarget.Global);
+}
+
+/**
+ * Asks once whether NotionDown should replace the text editor as the Markdown default, when the
+ * user's own `workbench.editorAssociations` keeps Markdown in the text editor.
+ *
+ * Why: the manifest makes NotionDown the default, but VS Code lets a user association win, and
+ * many users have a `"*.md": "default"` entry from before. Without a question they would
+ * install the extension and never see it, and the extension could not tell them, because it
+ * never ran. The question appears only in that case, never when NotionDown already applies, and
+ * either answer ends it: the two commands stay available.
+ *
+ * Why only a user-level entry that names the text editor: a workspace entry is a project's choice,
+ * and an entry for another editor is a choice this extension should not question.
+ *
+ * @param {vscode.Memento} state - Persistent store that remembers the question was asked
+ * @returns {Promise<void>} Resolves after the user answers, or at once when no question is needed
+ */
+async function offerDefaultEditor(state) {
+	if (state.get(PROMPTED_KEY)) return;
+	const inspected = vscode.workspace.getConfiguration("workbench").inspect("editorAssociations");
+	if (!inspected) return;
+	const entryOf = (value) => (value && typeof value === "object" ? value[DEFAULT_PATTERN] : undefined);
+	if (entryOf(inspected.globalValue) !== TEXT_EDITOR_VIEW_TYPE) return;
+	if (entryOf(inspected.workspaceValue) !== undefined || entryOf(inspected.workspaceFolderValue) !== undefined) return;
+	await state.update(PROMPTED_KEY, true);
+	const choice = await vscode.window.showInformationMessage(
+		"NotionDown is installed, but your editor associations open Markdown files in VS Code's text editor. Open them in NotionDown instead?",
+		"Use NotionDown",
+		"Keep Text Editor"
+	);
+	if (choice !== "Use NotionDown") return;
+	await chooseDefaultEditor(true);
+	// The file that is open now stays in the text editor until it is reopened.
+	const target = pickMarkdownUri();
+	if (target) await vscode.commands.executeCommand("vscode.openWith", target, VIEW_TYPE);
 }
 
 /**
@@ -218,6 +257,8 @@ function pickMarkdownUri(uri) {
  * @param {vscode.ExtensionContext} context - Extension context
  */
 function activate(context) {
+	// A failed question must never break the extension.
+	offerDefaultEditor(context.globalState).catch(() => {});
 	context.subscriptions.push(
 		vscode.window.registerCustomEditorProvider(VIEW_TYPE, createProvider(context.extensionUri), {
 			supportsMultipleEditorsPerDocument: false,

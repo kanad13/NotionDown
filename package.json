@@ -38,6 +38,9 @@
 		"theme": "dark"
 	},
 	"main": "./dist/extension.js",
+	"activationEvents": [
+		"onLanguage:markdown"
+	],
 	"contributes": {
 		"customEditors": [
 			{
@@ -56,7 +59,10 @@
 				"command": "notionDown.openEditor",
 				"title": "Open in NotionDown",
 				"category": "Markdown",
-				"icon": "$(edit)"
+				"icon": {
+					"light": "assets/open-light.svg",
+					"dark": "assets/open-dark.svg"
+				}
 			},
 			{
 				"command": "notionDown.useAsDefault",
