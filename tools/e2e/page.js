@@ -85,6 +85,12 @@ async function attach(port) {
 		/** True when the active editor tab shows the unsaved marker. */
 		isDirty: () => inWorkbench("!!document.querySelector('.tabs-container .tab.active.dirty')"),
 
+		/** Clicks a button in the editor title bar by its label; false when it is not shown. */
+		clickTitleAction: (label) =>
+			inWorkbench(
+				`(() => { const a = [...document.querySelectorAll('.editor-actions .action-label')].find((x) => x.getAttribute('aria-label') === ${JSON.stringify(label)}); if (!a) return false; a.click(); return true; })()`
+			),
+
 		/** Visible notification toasts as `{ text, buttons }`. */
 		notifications: () =>
 			inWorkbench(
@@ -125,6 +131,12 @@ async function attach(port) {
 				/** Puts the cursor at the end of the document and gives the page the focus. */
 				focusEnd: () =>
 					inWebview(session, "(() => { const e = d.querySelector('.ProseMirror'); e.focus(); const s = d.getSelection(); s.selectAllChildren(e); s.collapseToEnd(); return d.hasFocus(); })()"),
+				/** Presses Enter, which starts a new paragraph. */
+				async enter() {
+					for (const type of ["rawKeyDown", "keyUp"]) {
+						await client.send("Input.dispatchKeyEvent", { type, key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, text: type === "rawKeyDown" ? "\r" : undefined }, session);
+					}
+				},
 				/** Types text as the keyboard's text input does. */
 				type: (text) => client.send("Input.insertText", { text }, session),
 			};

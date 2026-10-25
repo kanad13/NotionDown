@@ -36,8 +36,10 @@ flowchart LR
   - The page is the only view of the file, so there is no split screen and no scroll sync problem.
   - `priority: "default"` makes NotionDown open every `.md` file as soon as it installs, which is the product's purpose.
 - **When a user setting overrides the default:**
-  - `workbench.editorAssociations` in the user's own settings can map `*.md` to the text editor, and VS Code then never opens NotionDown. The extension activates on Markdown (`onLanguage:markdown`) so that it can notice, and asks once whether to remove that entry.
-  - The question appears only for a user-level entry that names the text editor. A workspace entry is a project's choice, and an entry for another editor is not questioned. Any answer ends the question, and the two commands below stay available.
+  - `workbench.editorAssociations` in the user's own settings can map `*.md` to the text editor, and VS Code then never opens NotionDown. The extension activates on Markdown (`onLanguage:markdown`) so that it can notice, and asks whether to remove that entry.
+  - The question appears only for a user-level entry that names the text editor. A workspace entry is a project's choice, and an entry for another editor is not questioned. A toast fades and a dismissed one looks like an ignored one, so the question comes back in up to three sessions until a button is pressed; "Keep Text Editor" ends it for good, and so does "Use NotionDown". Clicking the rocket asks again unless the user already answered. The two commands below stay available.
+- **The rocket button:**
+  - **Open in NotionDown** opens the file in NotionDown and closes the text editor tab that was showing it, so the file is not open twice. Opened from the Explorer, it leaves other tabs alone.
 - **Opting out:**
   - VS Code's own `workbench.editorAssociations` is the one place a user overrides a default, so the extension adds no setting of its own that would have to fight it.
   - **Use the VS Code Text Editor as the Default Markdown Editor** writes `"*.md": "default"` to the user setting, and **Use NotionDown as the Default Markdown Editor** removes that entry. Neither touches an entry that belongs to another editor, and neither copies workspace settings into the user setting.

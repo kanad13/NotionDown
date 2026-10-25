@@ -25,7 +25,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 ## Use
 
 1. Open a Markdown file.
-2. Select the **Open in NotionDown** rocket icon in the editor title bar, or right-click the file in the Explorer and choose **Open in NotionDown**.
+2. Select the **Open in NotionDown** rocket icon in the editor title bar (it replaces the text editor tab), or right-click the file in the Explorer and choose **Open in NotionDown**.
 3. Edit. Save as you would any file.
 
 **Default editor:**
@@ -33,7 +33,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - NotionDown opens every `.md` file by default, from the moment it is installed.
 - To use VS Code's text editor for Markdown instead, run **Markdown: Use the VS Code Text Editor as the Default Markdown Editor** from the Command Palette. **Markdown: Use NotionDown as the Default Markdown Editor** reverses it.
 - Both commands write one entry (`"*.md"`) to your `workbench.editorAssociations` user setting, so you can also edit it in settings.json.
-- If your own `workbench.editorAssociations` setting maps `*.md` to the text editor, VS Code keeps using it. NotionDown asks once whether to replace that entry. Either answer ends the question, and the two commands above stay available.
+- If your own `workbench.editorAssociations` setting maps `*.md` to the text editor, VS Code keeps using it. NotionDown asks whether to replace that entry, and asks again in up to two later sessions if you ignore it. Pressing either button ends the question, and the two commands above stay available.
 - To open a single file in the text editor, use **Reopen Editor With... > Text Editor**.
 
 ## Features
@@ -53,7 +53,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 
 **Your file stays yours:**
 
-- Lines you did not edit are written back byte for byte. A block you edited is written in NotionDown's style: `-` bullets, padded table columns, and a backslash before a character that Markdown could read as formatting.
+- Lines you did not edit are written back byte for byte. A block you edited is written in NotionDown's style: `-` bullets, padded table columns, and a backslash before a character that Markdown could read as formatting. A `#` that cannot start a heading, such as `#hashtag`, gets no backslash.
 - Empty paragraphs you add are not written to the file.
 - Front matter is kept out of the editor and left unchanged.
 
@@ -92,8 +92,6 @@ The security model is in [docs/architecture.md](docs/architecture.md#security-mo
   - [KaTeX](https://katex.org) renders the math.
   - [CodeMirror](https://codemirror.net) highlights the code blocks.
   - All four are MIT-licensed.
-- **Icon:**
-  - The title-bar button is the `rocket-compact` icon from Microsoft's [vscode-codicons](https://github.com/microsoft/vscode-codicons), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## Contribute
 

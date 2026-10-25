@@ -13,6 +13,7 @@ const {
 	prompts,
 	userChoice,
 	settings,
+	tabs,
 	vscode,
 	makeDoc,
 	makeContext,
@@ -248,6 +249,34 @@ describe("open command", () => {
 	});
 });
 
+describe("open command, tabs", () => {
+	beforeEach(reset);
+
+	const textTab = (doc) => ({ input: new vscode.TabInputText(doc.uri) });
+
+	it("replaces the text editor tab that is showing the file", async () => {
+		activate(makeContext());
+		const doc = makeDoc("/a.md", "x");
+		const tab = textTab(doc);
+		tabs.open = [tab];
+		tabs.active = tab;
+		await handlers["command:notionDown.openEditor"](doc.uri);
+		assert.deepEqual(tabs.closed, [tab]);
+		assert.deepEqual(executed, [["vscode.openWith", doc.uri, VIEW_TYPE]]);
+	});
+
+	it("leaves other tabs alone when the file is opened from the Explorer", async () => {
+		activate(makeContext());
+		const doc = makeDoc("/a.md", "x");
+		const other = textTab(makeDoc("/b.md", "y"));
+		const background = textTab(doc);
+		tabs.open = [other, background];
+		tabs.active = other;
+		await handlers["command:notionDown.openEditor"](doc.uri);
+		assert.deepEqual(tabs.closed, []);
+	});
+});
+
 describe("default editor", () => {
 	beforeEach(reset);
 
@@ -298,12 +327,28 @@ describe("default editor", () => {
 			assert.deepEqual(settings.global.editorAssociations, association("default"));
 		});
 
-		it("counts a dismissed question as an answer", async () => {
+		it("comes back in the next sessions when the toast was ignored, and then stops", async () => {
 			settings.global.editorAssociations = association("default");
-			const state = await ask();
-			await ask(state);
-			assert.equal(prompts.length, 1);
+			const state = makeState();
+			for (let session = 0; session < 5; session++) await ask(state);
+			assert.equal(prompts.length, 3);
 			assert.deepEqual(settings.writes, []);
+		});
+
+		it("asks again when the user clicks the rocket, unless they already answered", async () => {
+			settings.global.editorAssociations = association("default");
+			const state = makeState();
+			for (let session = 0; session < 4; session++) await ask(state);
+			const doc = makeDoc("/a.md", "x");
+			await handlers["command:notionDown.openEditor"](doc.uri);
+			await later();
+			assert.equal(prompts.length, 4);
+			userChoice.next = "Keep Text Editor";
+			await handlers["command:notionDown.openEditor"](doc.uri);
+			await later();
+			await handlers["command:notionDown.openEditor"](doc.uri);
+			await later();
+			assert.equal(prompts.length, 5);
 		});
 
 		it("stays quiet when nothing overrides the manifest default", async () => {
@@ -377,14 +422,9 @@ describe("default editor", () => {
 		assert.deepEqual(settings.global.editorAssociations, association("default"));
 	});
 
-	it("ships the title-bar icon files that the manifest names, not a codicon the oldest supported editor may lack", () => {
-		const fs = require("node:fs");
-		const path = require("node:path");
+	it("uses a built-in codicon for the title-bar button, so the package ships no icon files for it", () => {
 		const command = require("../package.json").contributes.commands.find((c) => c.command === "notionDown.openEditor");
-		assert.equal(typeof command.icon, "object");
-		for (const file of [command.icon.light, command.icon.dark]) {
-			assert.ok(fs.existsSync(path.join(__dirname, "..", file)), `${file} exists`);
-		}
+		assert.equal(command.icon, "$(rocket-compact)");
 	});
 
 	it("declares both commands in the manifest", () => {
