@@ -108,6 +108,33 @@ describe("custom editor", () => {
 		assert.equal(doc.getText(), "new");
 	});
 
+	it("saves again after applying an edit that came from a Save, and only then", async () => {
+		const doc = makeDoc("/a.md", "old");
+		let saves = 0;
+		doc.save = async () => (saves++, true);
+		const panel = await openEditor(activate, doc);
+		await panel.receive({ type: "edit", text: "new" });
+		assert.equal(saves, 0, "an ordinary edit started a save");
+		await panel.receive({ type: "edit", text: "newer", save: true });
+		assert.equal(saves, 1);
+		assert.equal(doc.getText(), "newer");
+	});
+
+	it("does not save a clean document, an untitled one, or on a save flag that is not true", async () => {
+		const doc = makeDoc("/a.md", "old");
+		let saves = 0;
+		doc.save = async () => (saves++, true);
+		const panel = await openEditor(activate, doc);
+		await panel.receive({ type: "edit", text: "old", save: true });
+		doc.isDirty = false;
+		await panel.receive({ type: "edit", text: "old", save: true });
+		assert.equal(saves, 0, "a clean document was saved");
+		doc.isUntitled = true;
+		await panel.receive({ type: "edit", text: "other", save: true });
+		await panel.receive({ type: "edit", text: "another", save: "yes" });
+		assert.equal(saves, 0);
+	});
+
 	it("keeps CRLF line endings in a CRLF document", async () => {
 		const doc = makeDoc("/a.md", "a\r\nb", { eol: 2 });
 		const panel = await openEditor(activate, doc);

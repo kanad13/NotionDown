@@ -159,8 +159,16 @@ function makeDoc(filePath, text, { languageId = "markdown", scheme = "file", eol
 		get lineCount() {
 			return text.split(/\r?\n/).length;
 		},
+		isDirty: false,
+		isUntitled: false,
+		/** A save with nothing to model: the text is on disk. Tests that need save participants replace it. */
+		save: async () => {
+			doc.isDirty = false;
+			return true;
+		},
 		setText: (next) => {
 			text = next;
+			doc.isDirty = true;
 		},
 	};
 	doc.uri = {

@@ -18,7 +18,7 @@ import { replaceAll } from "@milkdown/kit/utils";
 import { Selection, TextSelection } from "@milkdown/kit/prose/state";
 import { languages } from "@codemirror/language-data";
 import { FEATURES, applyStringifyStyle, createTools, splitFrontMatter } from "../markdown-sync";
-import { createPageSync } from "../page-sync";
+import { createPageSync, isSaveShortcut } from "../page-sync";
 import { replaceContent } from "../editor-replace";
 // Individual files instead of common/style.css: the bundle ships without the AI, top-bar and
 // image-block features, and their styles would load for nothing.
@@ -130,5 +130,14 @@ window.addEventListener("message", async (event) => {
 document.addEventListener("visibilitychange", () => {
 	if (document.visibilityState === "hidden" && sync) sync.flush();
 });
+
+// Save pressed inside the page's pause: send the pending text now (capture phase, before the editor handles the key).
+document.addEventListener(
+	"keydown",
+	(event) => {
+		if (sync && isSaveShortcut(event)) sync.flush({ save: true });
+	},
+	true
+);
 
 vscode.postMessage({ type: "ready" });

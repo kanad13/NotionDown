@@ -246,6 +246,7 @@ function createProvider(extensionUri) {
 				// Edits apply in arrival order so a slow write cannot overwrite a newer one.
 				writeQueue = writeQueue
 					.then(() => applyEdit(message.text))
+					.then(() => message.save === true && !document.isUntitled && document.isDirty && document.save())
 					.catch(() => {})
 					.then(() => {
 						if (Number.isSafeInteger(message.count)) appliedEdits = message.count;

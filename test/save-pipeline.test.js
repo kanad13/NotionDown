@@ -75,6 +75,60 @@ for (const setup of SETUPS) {
 	});
 }
 
+describe("Save pressed before the page's pause is over", () => {
+	// Format on save with autosave off: only the explicit Save writes the file.
+	const setup = { name: "explicit save with format on save", participants: SETUPS[SETUPS.length - 1].participants };
+	// The page waits long, as in a real window, so the word is still unsent when Save is pressed.
+	for (const [name, latencyMs, formatMs] of [
+		["the edit lands while the formatter runs", 3, 40],
+		["the edit lands after the save finished", 40, 3],
+	]) {
+		it(`saves the last word, leaves the file formatted and the tab clean (${name})`, async () => {
+			const session = await startSession({ text: DOCUMENT, setup, sendDelayMs: 400, latencyMs, formatMs });
+			sessions.push(session);
+			session.type(" zulu");
+			await session.pressSave();
+			await until(() => !session.doc.isDirty && session.disk.includes("zulu"));
+			await session.settle();
+			assert.ok(session.disk.includes("zulu"), `the saved file lacks the last word: ${JSON.stringify(session.disk)}`);
+			assert.equal(session.doc.isDirty, false, "the tab is marked changed after the save settled");
+			assert.equal(session.disk, session.doc.getText(), "the document differs from what was saved");
+			assert.equal(session.disk, setup.participants.reduce((text, participant) => participant(text), session.disk), "the formatter's result was overwritten by unformatted text");
+			assert.ok(session.page.visibleText().endsWith(" zulu"), "the editor lost the word");
+			assert.equal(session.replaced, 0, "the page replaced its content, which moves the cursor");
+		});
+	}
+
+	it("keeps a space typed after Save was pressed", async () => {
+		const session = await startSession({ text: DOCUMENT, setup, sendDelayMs: 400, latencyMs: 3, formatMs: 40 });
+		sessions.push(session);
+		session.type(" zulu");
+		const done = session.pressSave();
+		session.type(" ");
+		await done;
+		await session.settle();
+		assert.ok(session.page.visibleText().endsWith(" zulu "), `the editor shows ${JSON.stringify(session.page.visibleText())}`);
+	});
+
+	it("does not save twice for an edit that is not a Save", async () => {
+		const session = await startSession({ text: DOCUMENT, setup, sendDelayMs: 10 });
+		sessions.push(session);
+		session.type(" zulu");
+		await until(() => session.doc.getText().includes("zulu"));
+		await session.settle();
+		assert.equal(session.saves, 0, "an edit without Save started a save");
+	});
+
+	it("shows the problem when the page does nothing on Save", async () => {
+		const session = await startSession({ text: DOCUMENT, setup, sendDelayMs: 400, latencyMs: 3, formatMs: 15 });
+		sessions.push(session);
+		session.type(" zulu");
+		await session.pressSave({ flush: false });
+		await session.settle();
+		assert.ok(!session.disk.includes("zulu"), "the harness should show the word missing from the saved file");
+	});
+});
+
 describe("the harness itself", () => {
 	it("reproduces the reported bug when the page replaces its content on every update", async () => {
 		const setup = SETUPS[SETUPS.length - 1];
