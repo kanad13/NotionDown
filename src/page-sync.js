@@ -17,6 +17,7 @@
  *   editor's own style marks do not make a block look edited and the file is not changed again.
  * - An update the host made before it saw the page's latest edit is stale, because that edit is on
  *   its way to overwrite it. The edit counter in `edit` and `update` messages detects this.
+ * - A Save pressed inside the pause sends the pending text at once, flagged `save`. VS Code has by then read the file without it, so the host saves again after it applies the edit.
  * - Plain CommonJS, like markdown-sync.js, so the page and the tests share one implementation.
  */
 const { reconcileMarkdown, sameContent, splitFrontMatter } = require("./markdown-sync");
@@ -26,6 +27,20 @@ const SEND_DELAY_MS = 200;
 
 /** Upper bound for the adaptive delay, so a huge file still saves within a couple of seconds. */
 const MAX_SEND_DELAY_MS = 2000;
+
+/**
+ * Tells whether a key event is the Save shortcut (Cmd+S or Ctrl+S).
+ *
+ * Why the page cares: VS Code starts the save when the key goes up to it, and the page's own
+ * pause (0.4 s with Milkdown's) may not be over. The page sends its text at that moment.
+ * Over-matching (Ctrl+S on a Mac) only sends a little early, so the check stays simple.
+ *
+ * @param {{ key?: string, metaKey?: boolean, ctrlKey?: boolean, altKey?: boolean, shiftKey?: boolean }} event - A keydown event
+ * @returns {boolean} True for Save
+ */
+function isSaveShortcut(event) {
+	return Boolean((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && typeof event.key === "string" && event.key.toLowerCase() === "s");
+}
 
 /**
  * Creates the page's sync state machine.
@@ -67,8 +82,10 @@ function createPageSync(deps, options = {}) {
 	 *
 	 * The work grows with the file, so the delay before the next send grows with how long this one
 	 * took: typing in a very large file never spends more than about a fifth of its time here.
+	 *
+	 * @param {{ save?: boolean }} [options] - `save` marks the edit as sent because the user pressed Save, so the host saves again once it has applied it
 	 */
-	function flush() {
+	function flush(options = {}) {
 		if (disposed) return;
 		clearTimer(sendTimer);
 		sendTimer = undefined;
@@ -78,7 +95,7 @@ function createPageSync(deps, options = {}) {
 		if (text === hostText) return;
 		hostText = text;
 		sentCount++;
-		deps.post({ type: "edit", text, count: sentCount });
+		deps.post(options.save ? { type: "edit", text, count: sentCount, save: true } : { type: "edit", text, count: sentCount });
 	}
 
 	return {
@@ -137,4 +154,4 @@ function createPageSync(deps, options = {}) {
 	};
 }
 
-module.exports = { createPageSync, SEND_DELAY_MS, MAX_SEND_DELAY_MS };
+module.exports = { createPageSync, isSaveShortcut, SEND_DELAY_MS, MAX_SEND_DELAY_MS };

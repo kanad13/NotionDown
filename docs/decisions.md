@@ -32,15 +32,16 @@ No entries.
 
 ## Deferred
 
-### Save pressed in the first 0.4 s after a keystroke
+### Settings for width, font, and similar options
 
 - **What it is:**
-  - The page sends edits 0.4 s after the last key (Milkdown's 200 ms pause plus the page's own 200 ms). A Save pressed inside that window writes the file without the last word. The tab shows the unsaved marker again, and the next Save or autosave includes the word. Nothing is lost.
+  - Extension settings (`notionDown.*`) for the reading width, font size, line height, font family, and similar presentation options.
 - **Why it is deferred:**
-  - Sending the edit when the key is pressed (a capture-phase `keydown` for Save) puts the word into the saved file, but it also puts the page's unformatted text over the formatter's result a moment after Save, so the tab turns dirty again and the file loses the formatting. Fixing both needs the host to merge the page's change into the current text instead of replacing the whole document.
-  - The saving habit of most people leaves more than 0.4 s, and autosave users never meet it.
+  - The column now fills the pane up to 72 rem and follows every resize, which removes the main reason to ask for a width setting. The editor already uses VS Code's UI and editor fonts, and VS Code's zoom scales the page.
+  - A setting needs a manifest entry, a way to reach the page without a fifth message (CSS values written into the page template when it renders, which applies after a reopen) or a live path that adds a message, a test per setting, and a place in the readme. The product goal is zero configuration.
+  - If one is built, a width setting (`notionDown.maxWidth`, with `full`) is the likeliest, then font size.
 - **Reopen when:**
-  - A report shows lost words on Save, or the host gains a merge for other reasons.
+  - Several users ask for the same option, or a default width or size proves wrong for a group of users.
 
 ## Declined
 

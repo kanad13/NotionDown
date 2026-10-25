@@ -47,10 +47,11 @@ async function until(condition, timeoutMs = 5000) {
  * @param {{ autoSaveDelayMs?: number, participants: Function[] }} [options.setup] - From vscode-setups.js
  * @param {number} [options.latencyMs] - One-way message delay between the page and the host
  * @param {number} [options.sendDelayMs] - The page's pause after the last keystroke before it sends
+ * @param {number} [options.formatMs] - How long the save participants take
  * @param {boolean} [options.naive] - Use the old update rule
  * @returns {Promise<object>} The session: `type`, `settle`, `doc`, `page`, `sync`, `replaced`, `stop`
  */
-async function startSession({ text, setup = { participants: [] }, latencyMs = 3, sendDelayMs = 10, naive = false }) {
+async function startSession({ text, setup = { participants: [] }, latencyMs = 3, sendDelayMs = 10, formatMs = 15, naive = false }) {
 	reset();
 	const doc = makeDoc("/work/note.md", text);
 	const panel = await openEditor(activate, doc);
@@ -93,10 +94,37 @@ async function startSession({ text, setup = { participants: [] }, latencyMs = 3,
 				const next = setup.participants.reduce((current, participant) => participant(current), doc.getText());
 				if (next === doc.getText()) return;
 				doc.setText(next);
+				doc.isDirty = false;
 				handlers.docChange({ document: doc, contentChanges: [{ text: next }] });
 			}, setup.autoSaveDelayMs);
 		}
 		return result;
+	};
+
+	// An explicit Save. VS Code reads the text at the moment of the save, runs the participants on it
+	// (a formatter takes a while), writes the result, and stops there when the document moved on.
+	let disk = text;
+	let saveQueue = Promise.resolve();
+	let saves = 0;
+	doc.save = () => {
+		saveQueue = saveQueue.then(async () => {
+			saves++;
+			const snapshot = doc.getText();
+			const formatted = setup.participants.reduce((current, participant) => participant(current), snapshot);
+			await sleep(formatMs);
+			disk = formatted;
+			if (stopped) return;
+			if (doc.getText() !== snapshot) {
+				doc.isDirty = true;
+				return;
+			}
+			if (formatted !== snapshot) {
+				doc.setText(formatted);
+				handlers.docChange({ document: doc, contentChanges: [{ text: formatted }] });
+			}
+			doc.isDirty = false;
+		});
+		return saveQueue.then(() => true);
 	};
 
 	return {
@@ -112,6 +140,26 @@ async function startSession({ text, setup = { participants: [] }, latencyMs = 3,
 		/** Waits long enough for sends, writes, autosave, and the resulting updates to finish. */
 		settle: () => sleep(setup.autoSaveDelayMs === undefined ? 80 : setup.autoSaveDelayMs * 4 + 80),
 		sleep,
+		/**
+		 * Presses Save. The page sees the key first (when `flush` is set, as the page script does for Cmd/Ctrl+S) and
+		 * VS Code reads the document at the same instant, so the page's edit arrives while the save is under way.
+		 *
+		 * @param {{ flush?: boolean }} [options] - `flush: false` models a page that does nothing on Save
+		 * @returns {Promise<boolean>} Resolves when the save VS Code started has finished
+		 */
+		pressSave({ flush = true } = {}) {
+			const done = doc.save();
+			if (flush) sync.flush({ save: true });
+			return done;
+		},
+		/** The text the last finished save wrote to disk. */
+		get disk() {
+			return disk;
+		},
+		/** How many saves VS Code ran. */
+		get saves() {
+			return saves;
+		},
 		/** How many times the editor content was replaced from the host. */
 		get replaced() {
 			return replaced;

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-10-25
+
+### Fixed
+
+- Save pressed within about half a second of your last key now saves that last word. The file ends formatted by your formatter, and the tab no longer shows the unsaved marker again.
+
+### Changed
+
+- The text column fills the editor up to a wider limit and follows the window, tab, or split as you resize it. Before, it stopped at a fixed 52 rem with wide empty margins.
+
 ## [0.3.0] - 2026-10-25
 
 ### Fixed
