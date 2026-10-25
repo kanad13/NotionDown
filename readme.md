@@ -42,7 +42,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - **Tables:**
   - Add, remove, and align rows and columns visually.
 - **Code:**
-  - Syntax highlighting for many languages in an editable code block.
+  - Syntax highlighting for 29 common languages in an editable code block.
 - **Diagrams:**
   - A `mermaid` code block shows its diagram under the source.
 - **Math:**

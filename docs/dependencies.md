@@ -13,7 +13,7 @@ Version numbers live only in the files in this table. Documentation refers to th
 
 | Kind                           | Examples                                          | Defined in                                                                   |
 | :----------------------------- | :------------------------------------------------ | :--------------------------------------------------------------------------- |
-| Bundled webview package        | Milkdown Crepe, Mermaid, CodeMirror language data | `dependencies` in `package.json`; resolved version in `package-lock.json`    |
+| Bundled webview package        | Milkdown Crepe, Mermaid, CodeMirror language packages | `dependencies` in `package.json`; resolved version in `package-lock.json`    |
 | Build, test, and release tools | webpack, ESLint, jsdom, `@vscode/vsce`, type packages | `devDependencies` in `package.json`; resolved version in `package-lock.json` |
 | Runtime and editor floors      | Node, VS Code                                     | `engines` in `package.json`                                                  |
 
