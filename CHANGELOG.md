@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-10-25
+
+### Changed
+
+- Code blocks highlight 29 common languages (JavaScript, TypeScript, Python, Go, Rust, Java, C, C++, C#, PHP, Ruby, Shell, SQL, JSON, YAML, TOML, HTML, CSS, SCSS, XML, Markdown, Diff, Dockerfile, Kotlin, Lua, PowerShell, Swift, JSX, and TSX). Other languages stay as plain, editable text.
+- The package has about 90 fewer files, and Visual Studio Code no longer warns about the extension's file count.
+
 ## [0.1.0] - 2026-10-24
 
 ### Added

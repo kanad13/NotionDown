@@ -56,6 +56,9 @@ const webviewConfig = {
 	},
 	resolve: {
 		extensions: [".js"],
+		// Crepe imports the full language list itself, which would bring back about 140 lazy files.
+		// Pointing it at the trimmed list keeps the package small (see src/webview/languages.js).
+		alias: { "@codemirror/language-data$": path.resolve(__dirname, "src/webview/languages.js") },
 	},
 	module: {
 		rules: [

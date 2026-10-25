@@ -38,7 +38,7 @@ flowchart LR
   - **Use the VS Code Text Editor as the Default Markdown Editor** writes `"*.md": "default"` to the user setting, and **Use NotionDown as the Default Markdown Editor** removes that entry. Neither touches an entry that belongs to another editor, and neither copies workspace settings into the user setting.
 - **Why a local bundle, not a CDN:**
   - Milkdown has no CDN build, and a local bundle keeps remote script sources out of the Content Security Policy.
-  - The cost is a larger `.vsix`. Mermaid and the CodeMirror languages load as lazy chunks, so the editor opens without parsing them.
+  - The cost is a larger `.vsix`. Mermaid and the 29 highlighted languages (`src/webview/languages.js`) load as lazy chunks, so the editor opens without parsing them.
 
 ## Message Protocol
 
