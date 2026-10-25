@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Words you type are no longer swallowed. With autosave on, trimmed whitespace, a final newline, or a formatter such as Prettier, the file is rewritten shortly after you stop typing, and the editor used to replace its content with the rewrite and drop the latest words. A rewrite that only changes formatting now leaves the editor, your cursor, and your typing alone.
+- After another program changes the file, such as a Git checkout or an undo in the text editor, the cursor stays where it was.
+- Markdown files open in NotionDown for users whose `workbench.editorAssociations` setting sent `*.md` to the text editor: NotionDown now asks whether to remove that entry.
+- A `#hashtag` typed at the start of a line is saved as typed, not as `\#hashtag`.
+- **Open in NotionDown** replaces the text editor tab instead of opening a second tab for the same file.
+- The question about making NotionDown the default comes back in up to two later sessions if its notification was ignored, and when you click the rocket.
+
+### Changed
+
+- The title-bar button is the rocket icon from VS Code's built-in icon set instead of a pencil. It needs a recent VS Code to show.
+
 ## [0.2.0] - 2026-10-25
 
 ### Changed

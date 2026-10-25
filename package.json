@@ -38,6 +38,9 @@
 		"theme": "dark"
 	},
 	"main": "./dist/extension.js",
+	"activationEvents": [
+		"onLanguage:markdown"
+	],
 	"contributes": {
 		"customEditors": [
 			{
@@ -56,7 +59,7 @@
 				"command": "notionDown.openEditor",
 				"title": "Open in NotionDown",
 				"category": "Markdown",
-				"icon": "$(edit)"
+				"icon": "$(rocket-compact)"
 			},
 			{
 				"command": "notionDown.useAsDefault",
@@ -94,6 +97,7 @@
 	"scripts": {
 		"build": "webpack",
 		"lint": "eslint .",
+		"e2e": "node tools/e2e/run.js",
 		"test": "npm run build && node --test \"test/*.test.js\" && npm run lint",
 		"package": "npm run build && vsce package",
 		"publish": "npm run build && vsce publish"

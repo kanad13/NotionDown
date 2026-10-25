@@ -98,6 +98,28 @@ function stripPlaceholders(text) {
 }
 
 /**
+ * Removes a backslash the serializer puts before a `#` that cannot start a heading.
+ *
+ * Why: the serializer escapes every `#` at the start of a line, so a typed `#hashtag` is saved as
+ * `\#hashtag`. In Markdown a heading needs a space after the `#`, so `#hashtag` is plain text and
+ * the backslash only clutters the file. A `#` run that ends the line or is followed by a space
+ * keeps its backslash, because without it the line would become a heading.
+ *
+ * @param {string} text - Text of an edited block
+ * @returns {string} Text without those backslashes, outside code fences
+ */
+function relaxHeadingEscapes(text) {
+	let fenced = false;
+	return text
+		.split("\n")
+		.map((line) => {
+			if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+			return fenced ? line : line.replace(/^((?:\s*(?:>|[-*+]|\d+[.)]))*\s*)\\(#{1,6})(?=[^\s#])/, "$1$2");
+		})
+		.join("\n");
+}
+
+/**
  * Pairs each edited block with an original block of the same content.
  *
  * @param {string[]} originalKeys - Normalized original blocks
@@ -189,6 +211,54 @@ function gapBetween(original, blocks, before, after) {
 }
 
 /**
+ * Tells whether two file texts say the same thing, whatever their formatting.
+ *
+ * Why: other tools rewrite the file after the page wrote it: a formatter on save, trimmed
+ * whitespace, a final newline. Those changes carry no new content, so the page must keep what it
+ * shows instead of replacing it, or it would drop what the user typed in the meantime. The
+ * comparison is on the parsed document, not on text: `*a*` and `_a_` parse alike, and so do a
+ * padded and an unpadded table. The editor's serializer keeps the emphasis marker it read, so
+ * comparing its output would call those two different.
+ *
+ * @param {string} a - File text
+ * @param {string} b - File text
+ * @param {{ canonicalBlocks: (text: string) => string[] }} tools - Parser access; see createTools
+ * @returns {boolean} True when the texts differ at most in formatting
+ */
+function sameContent(a, b, tools) {
+	const one = splitFrontMatter(a);
+	const two = splitFrontMatter(b);
+	if (trimLineEnds(one.front).trim() !== trimLineEnds(two.front).trim()) return false;
+	const left = tools.canonicalBlocks(one.body);
+	const right = tools.canonicalBlocks(two.body);
+	return left.length === right.length && left.every((block, index) => block === right[index]);
+}
+
+/**
+ * Removes spaces and tabs at the end of every line.
+ *
+ * @param {string} text - Any text
+ * @returns {string} Text without trailing spaces or tabs
+ */
+function trimLineEnds(text) {
+	return text.replace(/[ \t]+$/gm, "");
+}
+
+/**
+ * Reduces a parsed node to a string that is equal for equal content: no positions, and no
+ * trailing spaces in text, which a save-time tool may trim.
+ *
+ * @param {object} node - mdast node from the editor's parser
+ * @returns {string} Canonical JSON for the node
+ */
+function canonicalNode(node) {
+	return JSON.stringify(node, (key, value) => {
+		if (key === "position") return undefined;
+		return typeof value === "string" ? trimLineEnds(value) : value;
+	});
+}
+
+/**
  * Builds the file text for an edited document.
  *
  * @param {string} original - The file's Markdown body (no front matter), as the host holds it
@@ -206,7 +276,11 @@ function reconcileMarkdown(original, edited, tools) {
 		keyOf(tools.normalize(block.type === "definition" ? block.text : [block.text, ...definitions].join("\n\n")))
 	);
 	const editedKeys = editedBlocks.map((block) => keyOf(block.text));
-	const match = matchBlocks(originalKeys, editedKeys);
+	// Two blocks that parse alike say the same thing, whatever marks the writer chose. The editor keeps
+	// the emphasis mark it read (`_a_`), so after a formatter rewrote the file a block the user did not
+	// change would still differ from the editor's `*a*`, and the page would write the old style back.
+	const canonical = (key) => (key === "" || !tools.canonicalKey ? key : tools.canonicalKey(key));
+	const match = matchBlocks(originalKeys.map(canonical), editedKeys.map(canonical));
 
 	// The editor drops empty paragraphs at either end of a document, so those stay as the file has them.
 	const filled = originalKeys.map((key, index) => (key === "" ? -1 : index)).filter((index) => index >= 0);
@@ -219,7 +293,7 @@ function reconcileMarkdown(original, edited, tools) {
 			if (filled.length > 0 && (match[index] < first || match[index] > last)) return;
 			parts.push({ text: originalBlocks[match[index]].text, index: match[index] });
 		} else if (editedKeys[index] !== "") {
-			parts.push({ text: stripPlaceholders(block.text), index: -1 });
+			parts.push({ text: relaxHeadingEscapes(stripPlaceholders(block.text)), index: -1 });
 		}
 	});
 
@@ -244,10 +318,24 @@ function reconcileMarkdown(original, edited, tools) {
  * @param {object} ctx - Milkdown context, from `editor.action((ctx) => ...)`
  * @param {{ remarkCtx: object, parserCtx: object, serializerCtx: object }} keys - Context slices from `@milkdown/kit/core`
  * @param {Map<string, string>} cache - Memo of normalized blocks; the caller owns its lifetime
- * @returns {{ parseBlocks: Function, normalize: Function }} Tools for reconcileMarkdown
+ * @returns {{ parseBlocks: Function, normalize: Function, canonicalBlocks: Function, canonicalKey: Function }} Tools for reconcileMarkdown and sameContent
  */
 function createTools(ctx, keys, cache = new Map()) {
 	return {
+		canonicalKey(text) {
+			try {
+				return this.canonicalBlocks(text).join("\n");
+			} catch {
+				return text;
+			}
+		},
+		canonicalBlocks(text) {
+			return ctx
+				.get(keys.remarkCtx)
+				.parse(text)
+				.children.filter((node) => !(node.type === "html" && EMPTY_LINE_PLACEHOLDER.test(node.value.trim())))
+				.map(canonicalNode);
+		},
 		parseBlocks(text) {
 			return ctx
 				.get(keys.remarkCtx)
@@ -281,4 +369,12 @@ function applyStringifyStyle(ctx, keys) {
 	ctx.update(keys.remarkStringifyOptionsCtx, (options) => ({ ...options, ...STRINGIFY_STYLE }));
 }
 
-module.exports = { FEATURES, applyStringifyStyle, splitFrontMatter, matchBlocks, reconcileMarkdown, createTools };
+module.exports = {
+	FEATURES,
+	applyStringifyStyle,
+	splitFrontMatter,
+	matchBlocks,
+	reconcileMarkdown,
+	sameContent,
+	createTools,
+};

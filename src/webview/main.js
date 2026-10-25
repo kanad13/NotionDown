@@ -6,16 +6,20 @@
  * rendered by Crepe's Latex feature.
  *
  * Invariants:
- * - `hostText` is the file text the host holds. The page sends text only when it differs from
- *   `hostText`, and blocks the user did not edit keep their original text (see markdown-sync.js),
- *   so opening or saving a file never rewrites lines the user did not touch.
+ * - When to send and how to treat the host's updates is decided in page-sync.js, which Node
+ *   tests run against the real editor. This file only connects it to the DOM and the host.
+ * - Blocks the user did not edit keep their original text (see markdown-sync.js), so opening or
+ *   saving a file never rewrites lines the user did not touch.
  * - Mermaid runs with `securityLevel: "strict"`, so diagram text cannot inject markup.
  */
 import { Crepe } from "@milkdown/crepe";
-import { parserCtx, remarkCtx, remarkStringifyOptionsCtx, serializerCtx } from "@milkdown/kit/core";
+import { editorViewCtx, parserCtx, remarkCtx, remarkStringifyOptionsCtx, serializerCtx } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
+import { Selection, TextSelection } from "@milkdown/kit/prose/state";
 import { languages } from "@codemirror/language-data";
-import { FEATURES, applyStringifyStyle, createTools, reconcileMarkdown, splitFrontMatter } from "../markdown-sync";
+import { FEATURES, applyStringifyStyle, createTools, splitFrontMatter } from "../markdown-sync";
+import { createPageSync } from "../page-sync";
+import { replaceContent } from "../editor-replace";
 // Individual files instead of common/style.css: the bundle ships without the AI, top-bar and
 // image-block features, and their styles would load for nothing.
 import "@milkdown/crepe/theme/common/prosemirror.css";
@@ -38,12 +42,6 @@ const script = document.currentScript;
 __webpack_public_path__ = script.dataset.publicPath;
 __webpack_nonce__ = script.nonce;
 
-/** Milliseconds to wait after the last keystroke before sending the text to the host. */
-const SEND_DELAY_MS = 200;
-
-/** Upper bound for the adaptive delay, so a huge file still saves within a couple of seconds. */
-const MAX_SEND_DELAY_MS = 2000;
-
 /** Milliseconds after opening at which the page precomputes block comparisons for the first edit. */
 const WARM_UP_DELAY_MS = 500;
 
@@ -53,9 +51,7 @@ const keys = { remarkCtx, parserCtx, serializerCtx, remarkStringifyOptionsCtx };
 const normalizedBlocks = new Map();
 
 let crepe;
-let hostText = "";
-let sendTimer;
-let sendDelay = SEND_DELAY_MS;
+let sync;
 let mermaidRuns = 0;
 
 /**
@@ -81,41 +77,13 @@ async function renderMermaid(source) {
 }
 
 /**
- * Builds the file text for the editor's current content.
- *
- * @returns {string} File text in which blocks the user did not edit keep their original text
- */
-function currentText() {
-	const { front, body } = splitFrontMatter(hostText);
-	const edited = crepe.getMarkdown();
-	return front + crepe.editor.action((ctx) => reconcileMarkdown(body, edited, createTools(ctx, keys, normalizedBlocks)));
-}
-
-/**
- * Sends the current Markdown to the host if the user changed it.
- *
- * The work grows with the file, so the delay before the next send grows with how long this one
- * took: typing in a very large file never spends more than about a fifth of its time here.
- */
-function flush() {
-	clearTimeout(sendTimer);
-	const started = performance.now();
-	const text = currentText();
-	sendDelay = Math.min(MAX_SEND_DELAY_MS, Math.max(SEND_DELAY_MS, (performance.now() - started) * 4));
-	if (text === hostText) return;
-	hostText = text;
-	vscode.postMessage({ type: "edit", text });
-}
-
-/**
  * Creates the editor with the host's text.
  *
  * @param {string} text - Markdown from the host
  * @returns {Promise<void>} Resolves once the editor is mounted
  */
 async function createEditor(text) {
-	hostText = text;
-	// Front matter is not content; the editor shows the body and `flush` puts the front matter back.
+	// Front matter is not content; the editor shows the body and the sync puts the front matter back.
 	crepe = new Crepe({
 		root: document.getElementById("editor"),
 		defaultValue: splitFrontMatter(text).body,
@@ -132,16 +100,20 @@ async function createEditor(text) {
 		},
 	});
 	crepe.editor.config((ctx) => applyStringifyStyle(ctx, keys));
-	crepe.on((listener) =>
-		listener.markdownUpdated(() => {
-			clearTimeout(sendTimer);
-			sendTimer = setTimeout(flush, sendDelay);
-		})
-	);
+	const session = createPageSync({
+		post: (message) => vscode.postMessage(message),
+		getMarkdown: () => crepe.getMarkdown(),
+		withTools: (use) => crepe.editor.action((ctx) => use(createTools(ctx, keys, normalizedBlocks))),
+		replaceEditor: (body) => replaceContent(crepe.editor, body, { replaceAll, editorViewCtx, Selection, TextSelection }),
+	});
+	session.start(text);
+	crepe.on((listener) => listener.markdownUpdated(() => session.onEditorChange()));
 	await crepe.create();
+	// Messages that arrive while the editor mounts are ignored, so `sync` exists only once it can act on them.
+	sync = session;
 	// The first comparison parses and serializes every block. Doing it now, while the user reads,
 	// keeps the first keystroke from stalling on a large file.
-	setTimeout(() => crepe && currentText(), WARM_UP_DELAY_MS);
+	setTimeout(() => sync && sync.warmUp(), WARM_UP_DELAY_MS);
 }
 
 window.addEventListener("message", async (event) => {
@@ -149,16 +121,14 @@ window.addEventListener("message", async (event) => {
 	if (!message || typeof message.text !== "string") return;
 	if (message.type === "init") {
 		await createEditor(message.text);
-	} else if (message.type === "update" && crepe) {
-		clearTimeout(sendTimer);
-		hostText = message.text;
-		crepe.editor.action(replaceAll(splitFrontMatter(message.text).body));
+	} else if (message.type === "update" && sync) {
+		sync.onHostUpdate(message.text, message.applied);
 	}
 });
 
 // Edits typed in the last moment before the tab hides or closes must still reach the host.
 document.addEventListener("visibilitychange", () => {
-	if (document.visibilityState === "hidden" && crepe) flush();
+	if (document.visibilityState === "hidden" && sync) sync.flush();
 });
 
 vscode.postMessage({ type: "ready" });

@@ -36,9 +36,30 @@ const disposableFor = (key, handler) => ({
 	},
 });
 
+/** Tabs the fake workbench shows in its one group, and the tabs the extension closed. */
+const tabs = { open: [], closed: [], active: undefined };
+
 const vscode = {
+	TabInputText: class TabInputText {
+		constructor(uri) {
+			this.uri = uri;
+		}
+	},
 	window: {
 		activeTextEditor: undefined,
+		tabGroups: {
+			get activeTabGroup() {
+				return { tabs: tabs.open, activeTab: tabs.active };
+			},
+			get all() {
+				return [{ tabs: tabs.open, activeTab: tabs.active }];
+			},
+			close: async (tab) => {
+				tabs.closed.push(tab);
+				tabs.open = tabs.open.filter((t) => t !== tab);
+				return true;
+			},
+		},
 		showErrorMessage: (message) => errors.push(message),
 		showInformationMessage: async (message, ...buttons) => {
 			prompts.push({ message, buttons });
@@ -195,7 +216,7 @@ function makePanel() {
  * @returns {Promise<object>} The fake panel, already resolved by the registered provider
  */
 async function openEditor(activate, doc, state = makeState()) {
-	activate({ extensionUri: { scheme: "file", path: "/ext" }, subscriptions: [], globalState: state });
+	activate(makeContext(state));
 	const panel = makePanel();
 	await registration.provider.resolveCustomTextEditor(doc, panel, { isCancellationRequested: false });
 	return panel;
@@ -212,6 +233,16 @@ function makeState() {
 }
 
 /**
+ * Builds an extension context like the one VS Code passes to `activate`.
+ *
+ * @param {object} [state] - Global state from makeState(); a new one by default
+ * @returns {object} Context with the members the extension reads
+ */
+function makeContext(state = makeState()) {
+	return { extensionUri: { scheme: "file", path: "/ext" }, subscriptions: [], globalState: state };
+}
+
+/**
  * Clears recorded state between tests.
  */
 function reset() {
@@ -222,6 +253,9 @@ function reset() {
 	settings.writes.length = 0;
 	errors.length = 0;
 	executed.length = 0;
+	tabs.open = [];
+	tabs.closed = [];
+	tabs.active = undefined;
 	for (const key of Object.keys(handlers)) delete handlers[key];
 	vscode.workspace.workspaceFolders = undefined;
 	vscode.workspace.applyEditResult = true;
@@ -237,10 +271,12 @@ module.exports = {
 	prompts,
 	userChoice,
 	settings,
+	tabs,
 	vscode,
 	makeDoc,
 	makePanel,
 	makeState,
+	makeContext,
 	openEditor,
 	reset,
 };
