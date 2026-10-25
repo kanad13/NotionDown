@@ -11,9 +11,13 @@ const {
 	errors,
 	executed,
 	prompts,
+	userChoice,
 	settings,
+	tabs,
 	vscode,
 	makeDoc,
+	makeContext,
+	makeState,
 	openEditor,
 	reset,
 } = require("./helpers/fake-vscode");
@@ -70,7 +74,7 @@ describe("custom editor", () => {
 	beforeEach(reset);
 
 	it("registers the provider for the view type declared in the manifest", () => {
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+		activate(makeContext());
 		assert.equal(registration.viewType, VIEW_TYPE);
 		assert.equal(VIEW_TYPE, require("../package.json").contributes.customEditors[0].viewType);
 	});
@@ -138,9 +142,40 @@ describe("custom editor", () => {
 		doc.setText("A");
 		handlers.docChange({ document: doc, contentChanges: [{ text: "A" }] });
 		assert.deepEqual(panel.posted, [
-			{ type: "update", text: "X" },
-			{ type: "update", text: "A" },
+			{ type: "update", text: "X", applied: 0 },
+			{ type: "update", text: "A", applied: 0 },
 		]);
+	});
+
+	it("tells the page how many of its edits it had applied when the file changed", async () => {
+		const doc = makeDoc("/a.md", "0");
+		const panel = await openEditor(activate, doc);
+		await panel.receive({ type: "edit", text: "A", count: 1 });
+		await panel.receive({ type: "edit", text: "B", count: 2 });
+		doc.setText("B formatted");
+		handlers.docChange({ document: doc, contentChanges: [{ text: "x" }] });
+		assert.deepEqual(panel.posted, [{ type: "update", text: "B formatted", applied: 2 }]);
+	});
+
+	it("counts an edit as applied only after its write finished, so a change that lands first reads as stale", async () => {
+		const doc = makeDoc("/a.md", "0");
+		const panel = await openEditor(activate, doc);
+		const write = panel.receive({ type: "edit", text: "A", count: 1 });
+		// A formatter's change event reaches the host before the write's promise settles.
+		doc.setText("formatted");
+		handlers.docChange({ document: doc, contentChanges: [{ text: "x" }] });
+		await write;
+		assert.deepEqual(panel.posted, [{ type: "update", text: "formatted", applied: 0 }]);
+	});
+
+	it("keeps counting edits the document already holds, and ignores a count that is not an integer", async () => {
+		const doc = makeDoc("/a.md", "same");
+		const panel = await openEditor(activate, doc);
+		await panel.receive({ type: "edit", text: "same", count: 1 });
+		await panel.receive({ type: "edit", text: "other", count: "2" });
+		doc.setText("elsewhere");
+		handlers.docChange({ document: doc, contentChanges: [{ text: "x" }] });
+		assert.equal(panel.posted[0].applied, 1);
 	});
 
 	it("forwards an external change (another editor, undo, git checkout) to the page", async () => {
@@ -148,7 +183,7 @@ describe("custom editor", () => {
 		const panel = await openEditor(activate, doc);
 		doc.setText("changed\r\nelsewhere");
 		handlers.docChange({ document: doc, contentChanges: [{ text: "x" }] });
-		assert.deepEqual(panel.posted, [{ type: "update", text: "changed\nelsewhere" }]);
+		assert.deepEqual(panel.posted, [{ type: "update", text: "changed\nelsewhere", applied: 0 }]);
 	});
 
 	it("ignores changes to other documents and dirty-state events", async () => {
@@ -191,14 +226,14 @@ describe("open command", () => {
 	beforeEach(reset);
 
 	it("opens the given Markdown file in the editor", async () => {
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+		activate(makeContext());
 		const doc = makeDoc("/a.md", "x");
 		await handlers["command:notionDown.openEditor"](doc.uri);
 		assert.deepEqual(executed, [["vscode.openWith", doc.uri, VIEW_TYPE]]);
 	});
 
 	it("falls back to the active Markdown editor", async () => {
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+		activate(makeContext());
 		const doc = makeDoc("/a.md", "x");
 		vscode.window.activeTextEditor = { document: doc };
 		await handlers["command:notionDown.openEditor"]();
@@ -206,7 +241,7 @@ describe("open command", () => {
 	});
 
 	it("reports an error when there is no Markdown file", async () => {
-		activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+		activate(makeContext());
 		vscode.window.activeTextEditor = { document: makeDoc("/a.txt", "x", { languageId: "plaintext" }) };
 		await handlers["command:notionDown.openEditor"]();
 		assert.equal(executed.length, 0);
@@ -214,16 +249,143 @@ describe("open command", () => {
 	});
 });
 
+describe("open command, tabs", () => {
+	beforeEach(reset);
+
+	const textTab = (doc) => ({ input: new vscode.TabInputText(doc.uri) });
+
+	it("replaces the text editor tab that is showing the file", async () => {
+		activate(makeContext());
+		const doc = makeDoc("/a.md", "x");
+		const tab = textTab(doc);
+		tabs.open = [tab];
+		tabs.active = tab;
+		await handlers["command:notionDown.openEditor"](doc.uri);
+		assert.deepEqual(tabs.closed, [tab]);
+		assert.deepEqual(executed, [["vscode.openWith", doc.uri, VIEW_TYPE]]);
+	});
+
+	it("leaves other tabs alone when the file is opened from the Explorer", async () => {
+		activate(makeContext());
+		const doc = makeDoc("/a.md", "x");
+		const other = textTab(makeDoc("/b.md", "y"));
+		const background = textTab(doc);
+		tabs.open = [other, background];
+		tabs.active = other;
+		await handlers["command:notionDown.openEditor"](doc.uri);
+		assert.deepEqual(tabs.closed, []);
+	});
+});
+
 describe("default editor", () => {
 	beforeEach(reset);
 
 	const association = (value) => ({ "*.md": value });
-	const start = () => activate({ extensionUri: { path: "/ext" }, subscriptions: [] });
+	const start = () => activate(makeContext());
 
 	it("is the manifest default for Markdown, so it applies as soon as the extension installs", () => {
 		const editor = require("../package.json").contributes.customEditors[0];
 		assert.equal(editor.priority, "default");
 		assert.deepEqual(editor.selector, [{ filenamePattern: "*.md" }]);
+	});
+
+	it("activates when a Markdown file opens, so it can speak up even when the text editor shows it", () => {
+		assert.ok(require("../package.json").activationEvents.includes("onLanguage:markdown"));
+	});
+
+	describe("the question about replacing a text-editor association", () => {
+		const later = () => new Promise((resolve) => setTimeout(resolve, 0));
+		const ask = async (state = makeState()) => {
+			activate(makeContext(state));
+			await later();
+			return state;
+		};
+
+		it("is asked once when the user's own setting keeps Markdown in the text editor", async () => {
+			settings.global.editorAssociations = association("default");
+			await ask();
+			assert.equal(prompts.length, 1);
+			assert.deepEqual(prompts[0].buttons, ["Use NotionDown", "Keep Text Editor"]);
+		});
+
+		it("removes the entry and opens the current Markdown file in NotionDown when the user agrees", async () => {
+			settings.global.editorAssociations = { "*.png": "imagePreview.previewEditor", ...association("default") };
+			const doc = makeDoc("/a.md", "x");
+			vscode.window.activeTextEditor = { document: doc };
+			userChoice.next = "Use NotionDown";
+			await ask();
+			assert.deepEqual(settings.global.editorAssociations, { "*.png": "imagePreview.previewEditor" });
+			assert.deepEqual(executed, [["vscode.openWith", doc.uri, VIEW_TYPE]]);
+		});
+
+		it("changes nothing when the user keeps the text editor, and never asks again", async () => {
+			settings.global.editorAssociations = association("default");
+			userChoice.next = "Keep Text Editor";
+			const state = await ask();
+			await ask(state);
+			assert.equal(prompts.length, 1);
+			assert.deepEqual(settings.global.editorAssociations, association("default"));
+		});
+
+		it("comes back in the next sessions when the toast was ignored, and then stops", async () => {
+			settings.global.editorAssociations = association("default");
+			const state = makeState();
+			for (let session = 0; session < 5; session++) await ask(state);
+			assert.equal(prompts.length, 3);
+			assert.deepEqual(settings.writes, []);
+		});
+
+		it("asks again when the user clicks the rocket, unless they already answered", async () => {
+			settings.global.editorAssociations = association("default");
+			const state = makeState();
+			for (let session = 0; session < 4; session++) await ask(state);
+			const doc = makeDoc("/a.md", "x");
+			await handlers["command:notionDown.openEditor"](doc.uri);
+			await later();
+			assert.equal(prompts.length, 4);
+			userChoice.next = "Keep Text Editor";
+			await handlers["command:notionDown.openEditor"](doc.uri);
+			await later();
+			await handlers["command:notionDown.openEditor"](doc.uri);
+			await later();
+			assert.equal(prompts.length, 5);
+		});
+
+		it("stays quiet when nothing overrides the manifest default", async () => {
+			await ask();
+			settings.global.editorAssociations = { "*.png": "imagePreview.previewEditor" };
+			await ask();
+			assert.equal(prompts.length, 0);
+		});
+
+		it("stays quiet when the association already names NotionDown or another editor", async () => {
+			settings.global.editorAssociations = association(VIEW_TYPE);
+			await ask();
+			settings.global.editorAssociations = association("vscode.markdown.preview.editor");
+			await ask();
+			assert.equal(prompts.length, 0);
+		});
+
+		it("stays quiet when a workspace sets the association, because that is the project's choice", async () => {
+			settings.global.editorAssociations = association("default");
+			settings.workspace.editorAssociations = association("default");
+			await ask();
+			assert.equal(prompts.length, 0);
+		});
+
+		it("does not break the extension when the question fails", async () => {
+			settings.global.editorAssociations = association("default");
+			const original = vscode.window.showInformationMessage;
+			vscode.window.showInformationMessage = async () => {
+				throw new Error("no window");
+			};
+			try {
+				await ask();
+			} finally {
+				vscode.window.showInformationMessage = original;
+			}
+			assert.equal(typeof handlers["command:notionDown.openEditor"], "function");
+		});
 	});
 
 	it("never asks the user a question when an editor opens", async () => {
@@ -258,6 +420,11 @@ describe("default editor", () => {
 		start();
 		await handlers["command:notionDown.useTextEditorAsDefault"]();
 		assert.deepEqual(settings.global.editorAssociations, association("default"));
+	});
+
+	it("uses a built-in codicon for the title-bar button, so the package ships no icon files for it", () => {
+		const command = require("../package.json").contributes.commands.find((c) => c.command === "notionDown.openEditor");
+		assert.equal(command.icon, "$(rocket-compact)");
 	});
 
 	it("declares both commands in the manifest", () => {

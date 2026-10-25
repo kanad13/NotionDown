@@ -16,6 +16,10 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - **Why it is small:**
   - Everything runs inside VS Code, and the extension makes no network request for code.
 
+| Light theme                                                                | Dark theme                                                               |
+| :------------------------------------------------------------------------- | :----------------------------------------------------------------------- |
+| ![A note with a task list and a Mermaid diagram, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/overview-light.png) | ![A note with a task list and a Mermaid diagram, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/overview-dark.png) |
+
 ## Install
 
 1. Open the Extensions view in VS Code.
@@ -25,7 +29,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 ## Use
 
 1. Open a Markdown file.
-2. Select the **Open in NotionDown** icon in the editor title bar, or right-click the file in the Explorer and choose **Open in NotionDown**.
+2. Select the **Open in NotionDown** rocket icon in the editor title bar (it replaces the text editor tab), or right-click the file in the Explorer and choose **Open in NotionDown**.
 3. Edit. Save as you would any file.
 
 **Default editor:**
@@ -33,6 +37,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - NotionDown opens every `.md` file by default, from the moment it is installed.
 - To use VS Code's text editor for Markdown instead, run **Markdown: Use the VS Code Text Editor as the Default Markdown Editor** from the Command Palette. **Markdown: Use NotionDown as the Default Markdown Editor** reverses it.
 - Both commands write one entry (`"*.md"`) to your `workbench.editorAssociations` user setting, so you can also edit it in settings.json.
+- If your own `workbench.editorAssociations` setting maps `*.md` to the text editor, VS Code keeps using it. NotionDown asks whether to replace that entry, and asks again in up to two later sessions if you ignore it. Pressing either button ends the question, and the two commands above stay available.
 - To open a single file in the text editor, use **Reopen Editor With... > Text Editor**.
 
 ## Features
@@ -52,8 +57,10 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 
 **Your file stays yours:**
 
-- Lines you did not edit are written back byte for byte. A block you edited is written in NotionDown's style: `-` bullets, padded table columns, and a backslash before a character that Markdown could read as formatting.
+- Lines you did not edit are written back byte for byte. A block you edited is written in NotionDown's style: `-` bullets, padded table columns, and a backslash before a character that Markdown could read as formatting. A `#` that cannot start a heading, such as `#hashtag`, gets no backslash.
 - Empty paragraphs you add are not written to the file.
+- Enter starts a new paragraph, which the file separates with a blank line. Shift+Enter breaks the line inside a paragraph and writes a backslash at the end of it, which every Markdown renderer reads as a line break.
+- A single line break in the file shows as a space in NotionDown, as it does in most Markdown renderers.
 - Front matter is kept out of the editor and left unchanged.
 
 **Limits:**
@@ -62,6 +69,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - Two dollar signs in one paragraph, such as two prices, can display as math. The text in the file does not change.
 - Syntax that Milkdown does not support, such as footnotes, shows as text.
 - A Mermaid diagram keeps its color theme until you reopen the file.
+- A Save pressed within about half a second of your last key can save the file without that last word. The tab shows the unsaved marker again, and the next Save includes it.
 
 ## Privacy and Security
 
@@ -76,7 +84,23 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - **Restricted Mode:**
   - The extension works in untrusted workspaces.
 
-The security model is in [docs/architecture.md](docs/architecture.md#security-model).
+The security model is in [docs/architecture.md](https://github.com/kanad13/NotionDown/blob/main/docs/architecture.md#security-model).
+
+## Screenshots
+
+Type `/` in an empty paragraph to open the block menu.
+
+| Light theme                                                      | Dark theme                                                      |
+| :--------------------------------------------------------------- | :-------------------------------------------------------------- |
+| ![The slash menu, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/slash-light.png) | ![The slash menu, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/slash-dark.png) |
+
+Math, code, tables, and quotes show in place, and the file keeps their Markdown source.
+
+| Light theme                                                                  | Dark theme                                                                  |
+| :--------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| ![Math, code, a table, and a quote, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/details-light.png) | ![Math, code, a table, and a quote, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/details-dark.png) |
+
+The screenshots come from [examples/showcase.md](https://github.com/kanad13/NotionDown/blob/main/examples/showcase.md). `node tools/e2e/screenshots.js` regenerates them.
 
 ## About
 
@@ -93,9 +117,9 @@ The security model is in [docs/architecture.md](docs/architecture.md#security-mo
 
 ## Contribute
 
-- Read [AGENTS.md](AGENTS.md) for the rules, and [docs/workflows.md](docs/workflows.md) for the procedure that fits your request.
-- Set up with `npm ci`, then check with `npm test`. [docs/development.md](docs/development.md) covers the daily workflow, and [docs/testing.md](docs/testing.md) covers the checks.
-- [docs/decisions.md](docs/decisions.md) lists ideas that were evaluated and not built.
-- [docs/sibling-extensions.md](docs/sibling-extensions.md) lists the other extensions published as KunalPathak and the files they share.
+- Read [AGENTS.md](https://github.com/kanad13/NotionDown/blob/main/AGENTS.md) for the rules, and [docs/workflows.md](https://github.com/kanad13/NotionDown/blob/main/docs/workflows.md) for the procedure that fits your request.
+- Set up with `npm ci`, then check with `npm test`. [docs/development.md](https://github.com/kanad13/NotionDown/blob/main/docs/development.md) covers the daily workflow, and [docs/testing.md](https://github.com/kanad13/NotionDown/blob/main/docs/testing.md) covers the checks.
+- [docs/decisions.md](https://github.com/kanad13/NotionDown/blob/main/docs/decisions.md) lists ideas that were evaluated and not built.
+- [docs/sibling-extensions.md](https://github.com/kanad13/NotionDown/blob/main/docs/sibling-extensions.md) lists the other extensions published as KunalPathak and the files they share.
 
-Licensed under the [MIT License](LICENSE).
+Licensed under the [MIT License](https://github.com/kanad13/NotionDown/blob/main/LICENSE).

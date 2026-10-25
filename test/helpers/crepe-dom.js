@@ -10,6 +10,7 @@
  */
 const { JSDOM } = require("jsdom");
 const sync = require("../../src/markdown-sync");
+const { replaceContent } = require("../../src/editor-replace");
 
 class NoopObserver {
 	observe() {}
@@ -54,13 +55,14 @@ function installDom() {
  *
  * @param {string} markdown - File text; front matter is split off and kept out of the editor, as the page does
  * @param {{ features?: object }} [options] - Crepe feature flags to override
- * @returns {Promise<{ edit: Function, serialize: Function, save: Function, destroy: Function }>} Session helpers; `save()` reconciles against the text given to `open`
+ * @returns {Promise<object>} Session helpers: `edit`, `serialize`, `save` (reconciles against the text given to `open`), `withTools`, `replaceBody`, `typeAtEnd`, `visibleText`, `selection`, `placeCursor`, `destroy`
  */
 async function open(markdown, options = {}) {
 	installDom();
 	const { Crepe } = await import("@milkdown/crepe");
 	const core = await import("@milkdown/kit/core");
 	const utils = await import("@milkdown/kit/utils");
+	const state = await import("@milkdown/kit/prose/state");
 	const keys = {
 		remarkCtx: core.remarkCtx,
 		parserCtx: core.parserCtx,
@@ -78,6 +80,7 @@ async function open(markdown, options = {}) {
 	crepe.editor.config((ctx) => sync.applyStringifyStyle(ctx, keys));
 	await crepe.create();
 	const cache = new Map();
+	const view = () => crepe.editor.action((ctx) => ctx.get(core.editorViewCtx));
 	return {
 		crepe,
 		/** The editor's DOM root, for assertions about what the user would see. */
@@ -88,6 +91,35 @@ async function open(markdown, options = {}) {
 		},
 		/** The editor's raw serialization. */
 		serialize: () => crepe.getMarkdown(),
+		/** Runs `use` with the parser access that markdown-sync and page-sync need. */
+		withTools: (use) => crepe.editor.action((ctx) => use(sync.createTools(ctx, keys, cache))),
+		/** Replaces the editor content with Markdown, as the page does for an external change. */
+		replaceBody: (body) =>
+			replaceContent(crepe.editor, body, {
+				replaceAll: utils.replaceAll,
+				editorViewCtx: core.editorViewCtx,
+				Selection: state.Selection,
+				TextSelection: state.TextSelection,
+			}),
+		/** The cursor, as document positions. */
+		selection: () => {
+			const { from, to } = view().state.selection;
+			return { from, to };
+		},
+		/** Puts the cursor at `position` in the document, as a click would. */
+		placeCursor(position) {
+			const editorView = view();
+			editorView.dispatch(editorView.state.tr.setSelection(state.TextSelection.create(editorView.state.doc, position)));
+		},
+		/** Types `text` at the end of the document, the way keystrokes arrive: one transaction, cursor after it. */
+		typeAtEnd(text) {
+			const editorView = view();
+			const end = editorView.state.doc.content.size - 1;
+			const selection = state.TextSelection.create(editorView.state.doc, end);
+			editorView.dispatch(editorView.state.tr.setSelection(selection).insertText(text));
+		},
+		/** The text the user sees, without markup. */
+		visibleText: () => view().state.doc.textContent,
 		/** The file text the page would send to the host. */
 		save: () =>
 			front +

@@ -53,6 +53,15 @@ function anchorsOf(file) {
 	return anchors;
 }
 
+/**
+ * Returns the links of a file that point into this repository by absolute address, as `{ target, anchor }`.
+ * The README uses these because the store pages cannot resolve relative paths.
+ */
+function repositoryLinks(file) {
+	const pattern = /\]\(https:\/\/(?:github\.com\/kanad13\/NotionDown\/(?:blob|raw)|raw\.githubusercontent\.com\/kanad13\/NotionDown)\/main\/([^)#\s]+)(?:#([^)\s]+))?\)/g;
+	return [...proseLines(file).join("\n").matchAll(pattern)].map((m) => ({ target: m[1], anchor: m[2] }));
+}
+
 /** Returns the relative link targets of a file as `{ file, anchor }`, skipping external URLs. */
 function relativeLinks(file) {
 	const links = [];
@@ -130,8 +139,33 @@ describe("task routing", () => {
 
 	it("links the workflows guide from the README", () => {
 		assert.ok(
-			relativeLinks("readme.md").some((l) => l.target === "docs/workflows.md"),
+			repositoryLinks("readme.md").some((l) => l.target === "docs/workflows.md"),
 			"readme.md does not link docs/workflows.md"
 		);
+	});
+});
+
+describe("store pages", () => {
+	const readme = fs.readFileSync(path.join(root, "readme.md"), "utf8").replace(/`[^`]*`/g, "");
+
+	it("use absolute addresses for every image and link in the README, because the package leaves the images out and the stores show broken ones", () => {
+		for (const [, target] of readme.matchAll(/!?\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
+			assert.ok(/^(https?:|mailto:|#)/.test(target), `readme.md has the relative address ${target}`);
+		}
+	});
+
+	it("point every repository address in the README at a file that exists", () => {
+		const links = repositoryLinks("readme.md");
+		assert.ok(links.length >= 8, "the README no longer links its documents and images");
+		for (const { target, anchor } of links) {
+			assert.ok(fs.existsSync(path.join(root, target)), `readme.md points at ${target}, which does not exist`);
+			if (anchor && target.endsWith(".md")) assert.ok(anchorsOf(target).has(anchor), `readme.md points at the missing anchor ${target}#${anchor}`);
+		}
+	});
+
+	it("serve images from raw.githubusercontent.com, because a github.com/blob address returns a page, not an image", () => {
+		for (const [, target] of readme.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
+			assert.match(target, /^https:\/\/raw\.githubusercontent\.com\/kanad13\/NotionDown\/main\//, `${target} is not a raw address`);
+		}
 	});
 });

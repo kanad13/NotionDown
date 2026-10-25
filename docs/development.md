@@ -54,12 +54,23 @@ npm test
 3. **Check:**
    - Run `npm test`. It builds the bundle, runs every automated test, and lints. [testing.md](testing.md) explains the suites and the manual smoke check.
    - Run `npm run package` to build the `.vsix`.
+   - Run `npm run e2e` after a change to the host, `src/page-sync.js`, the manifest, or the save path. It runs scenarios in a real VS Code with a private profile and opens windows for about three minutes ([testing.md](testing.md#real-vs-code-checks)).
    - Install the build with **Extensions: Install from VSIX...**, or with `code --install-extension notiondown-X.Y.Z.vsix`, to test it in a real editor before the extension is on a registry.
 4. **Commit:**
    - Keep commits atomic. Write a concise, imperative subject that says what changed, and add the reason in the body.
    - Add no attribution trailers.
 5. **Merge:**
    - Merge into `main` with `git merge --no-ff` after the maintainer approves, then push. Confirm that the CI run on `main` passes.
+
+### README screenshots
+
+- **Regenerate:**
+  - Run `node tools/e2e/screenshots.js` after a change to the page's look. It builds the package, opens a private VS Code in a light and a dark theme, and writes six images from [examples/showcase.md](../examples/showcase.md) to `assets/screenshots/`.
+- **Check:**
+  - Open each image before you commit it.
+- **Addresses in the README:**
+  - The package leaves the images out (`.vscodeignore`), and the store pages cannot resolve relative paths, so the README names every image and link by absolute address: `https://raw.githubusercontent.com/kanad13/NotionDown/main/...` for images (a `github.com/.../blob/...` address returns a page, not an image) and `https://github.com/kanad13/NotionDown/blob/main/...` for documents. `test/docs.test.js` fails on a relative address or a target that does not exist.
+  - The addresses point at `main`, so merge and push the images before you publish.
 
 ### Style
 
