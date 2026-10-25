@@ -56,7 +56,7 @@ The extension has three parts, and each part has its own kind of check. A fourth
 | Open a Markdown file in NotionDown          | `extension`: command opens with the editor view type; errors when no Markdown file     | Menu placement is manual                      |
 | See the file's content in the editor        | `extension`: `ready` produces `init` with LF text. Harness: page renders the sample   | Rendering is manual                           |
 | Type while autosave or Save rewrites the file | `save-pipeline`: no word is lost on any setup, and editor and file agree afterwards. `page-sync`: each rule. `tools/e2e`: the same on real VS Code, with Prettier | Save pressed within about 0.4 s of the last key can save without it (see [decisions.md](decisions.md#deferred)) |
-| A user setting keeps Markdown in the text editor | `extension`: each branch of the one-time question. `tools/e2e`: the toast appears, yes changes the setting and opens NotionDown | None |
+| A user setting keeps Markdown in the text editor | `extension`: each branch of the question, its repeats, and the rocket replacing the text tab. `tools/e2e`: the toast appears, yes changes the setting and opens NotionDown, the rocket leaves one tab | None |
 | Edit in the page and save to the file       | `extension`: `edit` writes the document; equal text is skipped; CRLF kept; rejected write recovers | Typing and serialization are manual |
 | Edit in another editor, undo, or checkout   | `extension`: external change posts `update`; own writes are not echoed                | Cursor behavior after `update` is manual      |
 | Close the editor                            | `extension`: subscriptions are disposed; later messages are ignored                   | None                                          |
@@ -79,7 +79,7 @@ The extension has three parts, and each part has its own kind of check. A fourth
   - The Prettier extension, copied from your installed extensions, for the format-on-save scenarios. Without it those scenarios print `SKIP`.
   - It opens real windows on your screen for about three minutes. It stops only the processes it started.
 - **Options:** `--vsix <file>` tests a given package (for example the last release, to confirm that a check can fail), `--only <text>` runs the scenarios whose name contains the text, and `--keep` leaves the profile folders for inspection.
-- **Scenarios:** typing on VS Code defaults with Save, autosave with whitespace cleanup, autosave with the maintainer's settings, Prettier on Save while typing, a change made outside the editor, no association set, and a text-editor association with the one-time question.
+- **Scenarios:** typing on VS Code defaults with Save, autosave with whitespace cleanup, autosave with the maintainer's settings, Prettier on Save while typing, a typed `#hashtag` saved without a backslash, the rocket replacing the text tab, a change made outside the editor, no association set, and a text-editor association with the question.
 - **How the typing scenarios judge:**
   - Twelve words go in with uneven pauses and a seeded generator. After every pause the page is read back many times, so a word that disappears and returns is still caught.
   - The file on disk must end with every word, and after a Save the tab must not show the unsaved marker again.

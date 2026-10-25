@@ -59,10 +59,7 @@
 				"command": "notionDown.openEditor",
 				"title": "Open in NotionDown",
 				"category": "Markdown",
-				"icon": {
-					"light": "assets/open-light.svg",
-					"dark": "assets/open-dark.svg"
-				}
+				"icon": "$(rocket-compact)"
 			},
 			{
 				"command": "notionDown.useAsDefault",

@@ -139,6 +139,39 @@ const SCENARIOS = [
 		expectRewritten: (text) => text.includes("_emphasis_") && text.includes("- one"),
 	}),
 	{
+		name: "a typed #hashtag at the start of a line is saved without a backslash",
+		settings: {},
+		async run({ profile, win }) {
+			const file = path.join(profile.workspace, "hash.md");
+			fs.writeFileSync(file, "# Hash MarkerH\n\nStart\n");
+			profile.open(file);
+			const editor = await win.editor("MarkerH");
+			await editor.focusEnd();
+			await editor.enter();
+			await editor.type("#asdas");
+			await sleep(1500);
+			await win.save();
+			await waitFor("the file to hold the new line", async () => fs.readFileSync(file, "utf8").includes("asdas"), 10000);
+			const onDisk = fs.readFileSync(file, "utf8");
+			assert.ok(/^#asdas$/m.test(onDisk), `the file holds ${JSON.stringify(onDisk)}`);
+		},
+	},
+	{
+		name: "the rocket replaces the text editor tab instead of adding a second one",
+		settings: { "workbench.editorAssociations": { "*.md": "default" } },
+		async run({ profile, win }) {
+			const file = path.join(profile.workspace, "rocket.md");
+			fs.writeFileSync(file, "# Rocket MarkerR\n");
+			profile.open(file);
+			await waitFor("the question", async () => (await win.notifications()).some((n) => n.buttons.includes("Keep Text Editor")), 30000);
+			await win.clickNotificationButton("Keep Text Editor");
+			await waitFor("the rocket button", () => win.clickTitleAction("Open in NotionDown"), 15000);
+			await win.editor("MarkerR");
+			await waitFor("one tab for the file", async () => (await win.tabs()).filter((t) => t.startsWith("rocket.md")).length === 1, 10000);
+			assert.deepEqual(await win.notifications(), [], "a question appeared after the user kept the text editor");
+		},
+	},
+	{
 		name: "a change made outside the editor appears in the page",
 		settings: {},
 		async run({ profile, win }) {

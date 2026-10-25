@@ -98,6 +98,28 @@ function stripPlaceholders(text) {
 }
 
 /**
+ * Removes a backslash the serializer puts before a `#` that cannot start a heading.
+ *
+ * Why: the serializer escapes every `#` at the start of a line, so a typed `#hashtag` is saved as
+ * `\#hashtag`. In Markdown a heading needs a space after the `#`, so `#hashtag` is plain text and
+ * the backslash only clutters the file. A `#` run that ends the line or is followed by a space
+ * keeps its backslash, because without it the line would become a heading.
+ *
+ * @param {string} text - Text of an edited block
+ * @returns {string} Text without those backslashes, outside code fences
+ */
+function relaxHeadingEscapes(text) {
+	let fenced = false;
+	return text
+		.split("\n")
+		.map((line) => {
+			if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+			return fenced ? line : line.replace(/^((?:\s*(?:>|[-*+]|\d+[.)]))*\s*)\\(#{1,6})(?=[^\s#])/, "$1$2");
+		})
+		.join("\n");
+}
+
+/**
  * Pairs each edited block with an original block of the same content.
  *
  * @param {string[]} originalKeys - Normalized original blocks
@@ -271,7 +293,7 @@ function reconcileMarkdown(original, edited, tools) {
 			if (filled.length > 0 && (match[index] < first || match[index] > last)) return;
 			parts.push({ text: originalBlocks[match[index]].text, index: match[index] });
 		} else if (editedKeys[index] !== "") {
-			parts.push({ text: stripPlaceholders(block.text), index: -1 });
+			parts.push({ text: relaxHeadingEscapes(stripPlaceholders(block.text)), index: -1 });
 		}
 	});
 

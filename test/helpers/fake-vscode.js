@@ -36,9 +36,30 @@ const disposableFor = (key, handler) => ({
 	},
 });
 
+/** Tabs the fake workbench shows in its one group, and the tabs the extension closed. */
+const tabs = { open: [], closed: [], active: undefined };
+
 const vscode = {
+	TabInputText: class TabInputText {
+		constructor(uri) {
+			this.uri = uri;
+		}
+	},
 	window: {
 		activeTextEditor: undefined,
+		tabGroups: {
+			get activeTabGroup() {
+				return { tabs: tabs.open, activeTab: tabs.active };
+			},
+			get all() {
+				return [{ tabs: tabs.open, activeTab: tabs.active }];
+			},
+			close: async (tab) => {
+				tabs.closed.push(tab);
+				tabs.open = tabs.open.filter((t) => t !== tab);
+				return true;
+			},
+		},
 		showErrorMessage: (message) => errors.push(message),
 		showInformationMessage: async (message, ...buttons) => {
 			prompts.push({ message, buttons });
@@ -232,6 +253,9 @@ function reset() {
 	settings.writes.length = 0;
 	errors.length = 0;
 	executed.length = 0;
+	tabs.open = [];
+	tabs.closed = [];
+	tabs.active = undefined;
 	for (const key of Object.keys(handlers)) delete handlers[key];
 	vscode.workspace.workspaceFolders = undefined;
 	vscode.workspace.applyEditResult = true;
@@ -247,6 +271,7 @@ module.exports = {
 	prompts,
 	userChoice,
 	settings,
+	tabs,
 	vscode,
 	makeDoc,
 	makePanel,
