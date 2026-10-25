@@ -21,6 +21,25 @@ const { open } = require("./crepe-dom");
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Waits until a condition holds, for as long as a slow machine needs.
+ *
+ * Why: a fixed pause passes on a fast laptop and fails on a loaded CI runner, so the tests wait for
+ * the outcome they check and fail only when it never arrives.
+ *
+ * @param {() => boolean} condition - Checked every few milliseconds
+ * @param {number} [timeoutMs] - Longest wait
+ * @returns {Promise<boolean>} True when the condition held before the timeout
+ */
+async function until(condition, timeoutMs = 5000) {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		if (condition()) return true;
+		await sleep(10);
+	}
+	return condition();
+}
+
+/**
  * Opens a document with a page, a host, and a save pipeline.
  *
  * @param {object} options - Session options
@@ -106,4 +125,4 @@ async function startSession({ text, setup = { participants: [] }, latencyMs = 3,
 	};
 }
 
-module.exports = { startSession, sleep };
+module.exports = { startSession, sleep, until };
