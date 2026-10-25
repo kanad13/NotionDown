@@ -36,7 +36,7 @@ The extension has three parts, and each part has its own kind of check.
 | `test/extension.test.js`      | Page generation, escaping, nonce, message protocol, document writes, line endings, echo suppression, disposal, open command | `.html` loader and `vscode` shim |
 | `test/sync.test.js`           | Block reconciliation (pure), and a save-without-edit check that every Markdown file in the repository and every fixture in `test/fixtures/sync/` comes back byte-identical; edits change only the edited block | Real Crepe under jsdom (`test/helpers/crepe-dom.js`) |
 | `test/editor-content.test.js` | What the editor shows: Markdown images display with their path intact, math stays text, raw HTML never runs                  | Real Crepe under jsdom           |
-| `test/bundle.test.js`         | The webpack output opens a document and serves a complete page; Crepe styles and the theme mapping ship; Mermaid is a lazy chunk | Fake `vscode` only               |
+| `test/bundle.test.js`         | The webpack output opens a document and serves a complete page; Crepe styles and the theme mapping ship; Mermaid is a lazy chunk; the script file count stays low | Fake `vscode` only               |
 | `test/docs.test.js`           | Relative links and heading anchors in every Markdown file; the routing table in `AGENTS.md` matches `docs/workflows.md`      | None                             |
 | `test/helpers/fake-vscode.js` | Shared `vscode` and `.html` shims, fake documents and panels, handler capture                                                | Not a suite                      |
 
@@ -89,6 +89,7 @@ A check proves something only if it can fail. When you add or change a test for 
   - Removing the equal-text guard fails the no-write test.
   - Removing `sideEffects: true` from the CSS rule in `webpack.config.js` fails the bundle styles test.
   - Importing Mermaid statically in the page fails the lazy chunk test.
+  - Removing the `@codemirror/language-data` alias from `webpack.config.js` fails the script file count test.
   - Not dropping the `<br />` placeholder, not carrying link definitions, not canonicalizing list markers, not splitting front matter, and not matching blocks at all each fail the save tests.
 
 ## Rules for Changing Tests
