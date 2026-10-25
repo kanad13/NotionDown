@@ -156,6 +156,15 @@ describe("saving after an edit (real Crepe editor)", () => {
 		assert.equal(saved, "Start.\n\n#asdas\n\n#1 issue\n\n- #tag\n\n\\# not a heading\n\n\\#\n");
 	});
 
+	it("saves a hard break as a backslash, and keeps a single line break as one", async () => {
+		const original = "First line\nSecond line\n\nBreak here\\\nnext line\n";
+		const session = await open(original);
+		sessions.push(session);
+		assert.equal(session.save(), original);
+		session.edit("First line\nSecond line changed\n\nBreak here\\\nnext line\n");
+		assert.equal(session.save(), "First line\nSecond line changed\n\nBreak here\\\nnext line\n");
+	});
+
 	it("leaves a # inside a code block alone", async () => {
 		const saved = await edited("Start.\n", () => "Start.\n\n```text\n\\#kept\n```\n");
 		assert.equal(saved, "Start.\n\n```text\n\\#kept\n```\n");

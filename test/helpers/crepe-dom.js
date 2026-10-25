@@ -55,7 +55,7 @@ function installDom() {
  *
  * @param {string} markdown - File text; front matter is split off and kept out of the editor, as the page does
  * @param {{ features?: object }} [options] - Crepe feature flags to override
- * @returns {Promise<{ edit: Function, serialize: Function, save: Function, destroy: Function }>} Session helpers; `save()` reconciles against the text given to `open`
+ * @returns {Promise<object>} Session helpers: `edit`, `serialize`, `save` (reconciles against the text given to `open`), `withTools`, `replaceBody`, `typeAtEnd`, `visibleText`, `selection`, `placeCursor`, `destroy`
  */
 async function open(markdown, options = {}) {
 	installDom();

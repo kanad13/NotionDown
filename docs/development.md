@@ -62,6 +62,13 @@ npm test
 5. **Merge:**
    - Merge into `main` with `git merge --no-ff` after the maintainer approves, then push. Confirm that the CI run on `main` passes.
 
+### README screenshots
+
+- **Regenerate:**
+  - Run `node tools/e2e/screenshots.js` after a change to the page's look. It builds the package, opens a private VS Code in a light and a dark theme, and writes six images from [examples/showcase.md](../examples/showcase.md) to `assets/screenshots/`.
+- **Check:**
+  - Open each image before you commit it. The package leaves the images out (`.vscodeignore`), and the stores read them from the repository, so push them before you publish.
+
 ### Style
 
 - **Enforced by ESLint** (`eslint.config.js`): tab indentation, double quotes, semicolons, `const` and `let` only.
