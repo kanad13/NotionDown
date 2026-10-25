@@ -16,6 +16,10 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - **Why it is small:**
   - Everything runs inside VS Code, and the extension makes no network request for code.
 
+| Light theme                                                                | Dark theme                                                               |
+| :------------------------------------------------------------------------- | :----------------------------------------------------------------------- |
+| ![A note with a task list and a Mermaid diagram, light theme](assets/screenshots/overview-light.png) | ![A note with a task list and a Mermaid diagram, dark theme](assets/screenshots/overview-dark.png) |
+
 ## Install
 
 1. Open the Extensions view in VS Code.
@@ -55,6 +59,8 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 
 - Lines you did not edit are written back byte for byte. A block you edited is written in NotionDown's style: `-` bullets, padded table columns, and a backslash before a character that Markdown could read as formatting. A `#` that cannot start a heading, such as `#hashtag`, gets no backslash.
 - Empty paragraphs you add are not written to the file.
+- Enter starts a new paragraph, which the file separates with a blank line. Shift+Enter breaks the line inside a paragraph and writes a backslash at the end of it, which every Markdown renderer reads as a line break.
+- A single line break in the file shows as a space in NotionDown, as it does in most Markdown renderers.
 - Front matter is kept out of the editor and left unchanged.
 
 **Limits:**
@@ -79,6 +85,22 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
   - The extension works in untrusted workspaces.
 
 The security model is in [docs/architecture.md](docs/architecture.md#security-model).
+
+## Screenshots
+
+Type `/` in an empty paragraph to open the block menu.
+
+| Light theme                                                      | Dark theme                                                      |
+| :--------------------------------------------------------------- | :-------------------------------------------------------------- |
+| ![The slash menu, light theme](assets/screenshots/slash-light.png) | ![The slash menu, dark theme](assets/screenshots/slash-dark.png) |
+
+Math, code, tables, and quotes show in place, and the file keeps their Markdown source.
+
+| Light theme                                                                  | Dark theme                                                                  |
+| :--------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| ![Math, code, a table, and a quote, light theme](assets/screenshots/details-light.png) | ![Math, code, a table, and a quote, dark theme](assets/screenshots/details-dark.png) |
+
+The screenshots come from [examples/showcase.md](examples/showcase.md). `node tools/e2e/screenshots.js` regenerates them.
 
 ## About
 

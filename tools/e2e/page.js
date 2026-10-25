@@ -82,6 +82,32 @@ async function attach(port) {
 				"[...document.querySelectorAll('.tabs-container .tab')].map((tab) => tab.getAttribute('aria-label') + (tab.classList.contains('active') ? '*' : ''))"
 			),
 
+		/**
+		 * Saves a PNG of one part of the window.
+		 *
+		 * @param {string} file - Where to write the image
+		 * @param {string} selector - The element whose box is captured
+		 */
+		async screenshot(file, selector) {
+			const box = await inWorkbench(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })()`);
+			const { data } = await client.send("Page.captureScreenshot", { format: "png", clip: { ...box, scale: 2 } }, sessionId);
+			require("fs").writeFileSync(file, Buffer.from(data, "base64"));
+		},
+
+		/** Resizes the window, so screenshots have the same size on every machine. */
+		async resize(width, height) {
+			// An emulated viewport gives the same size on every screen; the window itself may be larger or smaller.
+			await client.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false }, sessionId);
+		},
+
+		/** Toggles the Side Bar, as its keyboard shortcut does. */
+		async toggleSideBar() {
+			const modifiers = process.platform === "darwin" ? 4 : 2;
+			for (const type of ["rawKeyDown", "keyUp"]) {
+				await client.send("Input.dispatchKeyEvent", { type, modifiers, key: "b", code: "KeyB", windowsVirtualKeyCode: 66 }, sessionId);
+			}
+		},
+
 		/** True when the active editor tab shows the unsaved marker. */
 		isDirty: () => inWorkbench("!!document.querySelector('.tabs-container .tab.active.dirty')"),
 
@@ -131,6 +157,11 @@ async function attach(port) {
 				/** Puts the cursor at the end of the document and gives the page the focus. */
 				focusEnd: () =>
 					inWebview(session, "(() => { const e = d.querySelector('.ProseMirror'); e.focus(); const s = d.getSelection(); s.selectAllChildren(e); s.collapseToEnd(); return d.hasFocus(); })()"),
+				/** True when the page contains an element that matches the selector. */
+				has: (selector) => inWebview(session, `!!d.querySelector(${JSON.stringify(selector)})`),
+				/** Scrolls the first heading or block that contains `text` to the top of the page. */
+				scrollTo: (text) =>
+					inWebview(session, `(() => { const el = [...d.querySelectorAll('.ProseMirror > *')].find((n) => n.innerText.includes(${JSON.stringify(text)})); if (!el) return false; el.scrollIntoView({ block: 'start' }); return true; })()`),
 				/** Presses Enter, which starts a new paragraph. */
 				async enter() {
 					for (const type of ["rawKeyDown", "keyUp"]) {
