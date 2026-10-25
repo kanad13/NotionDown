@@ -16,6 +16,7 @@ This extension is a Notion-style Markdown editor in a VS Code custom editor. It 
 
 - Host: `src/extension.js`
 - Fidelity: `src/markdown-sync.js` (pure CommonJS, shared by the page and the tests)
+- End-to-end tooling: `tools/e2e/` (a real VS Code driven through the DevTools protocol: `run.js` for scenarios, `screenshots.js` for the README images)
 - Page sync: `src/page-sync.js` and `src/editor-replace.js` (CommonJS, shared by the page and the tests): when the page sends edits and how it treats the host's updates
 - Page: `src/webview/main.js` and `src/webview/theme.css`, with the shell in `src/webview.html`
 - Build: webpack, two bundles → `dist/extension.js` and `dist/webview/`
