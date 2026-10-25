@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Words you type are no longer swallowed. With autosave on, trimmed whitespace, a final newline, or a formatter such as Prettier, the file is rewritten shortly after you stop typing, and the editor used to replace its content with the rewrite and drop the latest words. A rewrite that only changes formatting now leaves the editor, your cursor, and your typing alone.
+- After another program changes the file, such as a Git checkout or an undo in the text editor, the cursor stays where it was.
+- Markdown files open in NotionDown for users whose `workbench.editorAssociations` setting sent `*.md` to the text editor: NotionDown now asks once whether to remove that entry.
+
+### Changed
+
+- The title-bar button is a rocket icon instead of a pencil.
+
 ## [0.2.0] - 2026-10-25
 
 ### Changed

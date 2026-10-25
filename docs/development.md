@@ -54,6 +54,7 @@ npm test
 3. **Check:**
    - Run `npm test`. It builds the bundle, runs every automated test, and lints. [testing.md](testing.md) explains the suites and the manual smoke check.
    - Run `npm run package` to build the `.vsix`.
+   - Run `npm run e2e` after a change to the host, `src/page-sync.js`, the manifest, or the save path. It runs scenarios in a real VS Code with a private profile and opens windows for about three minutes ([testing.md](testing.md#real-vs-code-checks)).
    - Install the build with **Extensions: Install from VSIX...**, or with `code --install-extension notiondown-X.Y.Z.vsix`, to test it in a real editor before the extension is on a registry.
 4. **Commit:**
    - Keep commits atomic. Write a concise, imperative subject that says what changed, and add the reason in the body.
