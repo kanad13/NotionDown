@@ -4,7 +4,7 @@
  */
 const { describe, it, afterEach } = require("node:test");
 const assert = require("node:assert/strict");
-const { createPageSync } = require("../src/page-sync");
+const { createPageSync, isSaveShortcut } = require("../src/page-sync");
 const { sameContent } = require("../src/markdown-sync");
 const { open } = require("./helpers/crepe-dom");
 
@@ -221,5 +221,31 @@ describe("edits sent to the host", () => {
 		const s = await start("Hello\n");
 		s.sync.flush();
 		assert.deepEqual(s.posted, []);
+	});
+});
+
+describe("Save pressed inside the page's pause", () => {
+	it("recognizes Cmd+S and Ctrl+S and nothing else", () => {
+		assert.equal(isSaveShortcut({ key: "s", metaKey: true }), true);
+		assert.equal(isSaveShortcut({ key: "S", ctrlKey: true }), true);
+		assert.equal(isSaveShortcut({ key: "s" }), false);
+		assert.equal(isSaveShortcut({ key: "s", metaKey: true, shiftKey: true }), false);
+		assert.equal(isSaveShortcut({ key: "s", ctrlKey: true, altKey: true }), false);
+		assert.equal(isSaveShortcut({ key: "a", metaKey: true }), false);
+		assert.equal(isSaveShortcut({ metaKey: true }), false);
+	});
+
+	it("sends the pending text at once and flags it, and sends nothing when nothing is pending", async () => {
+		const run = await start("# T\n\nStart\n");
+		run.sync.flush({ save: true });
+		assert.deepEqual(run.posted, []);
+		run.page.typeAtEnd(" word");
+		run.sync.flush({ save: true });
+		assert.equal(run.posted.length, 1);
+		assert.equal(run.posted[0].save, true);
+		assert.ok(run.posted[0].text.includes("word"));
+		run.page.typeAtEnd(" more");
+		run.sync.flush();
+		assert.equal("save" in run.posted[1], false, "an ordinary edit carries no save flag");
 	});
 });
