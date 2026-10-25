@@ -18,7 +18,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 
 | Light theme                                                                | Dark theme                                                               |
 | :------------------------------------------------------------------------- | :----------------------------------------------------------------------- |
-| ![A note with a task list and a Mermaid diagram, light theme](assets/screenshots/overview-light.png) | ![A note with a task list and a Mermaid diagram, dark theme](assets/screenshots/overview-dark.png) |
+| ![A note with a task list and a Mermaid diagram, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/overview-light.png) | ![A note with a task list and a Mermaid diagram, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/overview-dark.png) |
 
 ## Install
 
@@ -84,7 +84,7 @@ NotionDown opens a Markdown file as a block editor. There is no split screen and
 - **Restricted Mode:**
   - The extension works in untrusted workspaces.
 
-The security model is in [docs/architecture.md](docs/architecture.md#security-model).
+The security model is in [docs/architecture.md](https://github.com/kanad13/NotionDown/blob/main/docs/architecture.md#security-model).
 
 ## Screenshots
 
@@ -92,15 +92,15 @@ Type `/` in an empty paragraph to open the block menu.
 
 | Light theme                                                      | Dark theme                                                      |
 | :--------------------------------------------------------------- | :-------------------------------------------------------------- |
-| ![The slash menu, light theme](assets/screenshots/slash-light.png) | ![The slash menu, dark theme](assets/screenshots/slash-dark.png) |
+| ![The slash menu, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/slash-light.png) | ![The slash menu, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/slash-dark.png) |
 
 Math, code, tables, and quotes show in place, and the file keeps their Markdown source.
 
 | Light theme                                                                  | Dark theme                                                                  |
 | :--------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
-| ![Math, code, a table, and a quote, light theme](assets/screenshots/details-light.png) | ![Math, code, a table, and a quote, dark theme](assets/screenshots/details-dark.png) |
+| ![Math, code, a table, and a quote, light theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/details-light.png) | ![Math, code, a table, and a quote, dark theme](https://raw.githubusercontent.com/kanad13/NotionDown/main/assets/screenshots/details-dark.png) |
 
-The screenshots come from [examples/showcase.md](examples/showcase.md). `node tools/e2e/screenshots.js` regenerates them.
+The screenshots come from [examples/showcase.md](https://github.com/kanad13/NotionDown/blob/main/examples/showcase.md). `node tools/e2e/screenshots.js` regenerates them.
 
 ## About
 
@@ -117,9 +117,9 @@ The screenshots come from [examples/showcase.md](examples/showcase.md). `node to
 
 ## Contribute
 
-- Read [AGENTS.md](AGENTS.md) for the rules, and [docs/workflows.md](docs/workflows.md) for the procedure that fits your request.
-- Set up with `npm ci`, then check with `npm test`. [docs/development.md](docs/development.md) covers the daily workflow, and [docs/testing.md](docs/testing.md) covers the checks.
-- [docs/decisions.md](docs/decisions.md) lists ideas that were evaluated and not built.
-- [docs/sibling-extensions.md](docs/sibling-extensions.md) lists the other extensions published as KunalPathak and the files they share.
+- Read [AGENTS.md](https://github.com/kanad13/NotionDown/blob/main/AGENTS.md) for the rules, and [docs/workflows.md](https://github.com/kanad13/NotionDown/blob/main/docs/workflows.md) for the procedure that fits your request.
+- Set up with `npm ci`, then check with `npm test`. [docs/development.md](https://github.com/kanad13/NotionDown/blob/main/docs/development.md) covers the daily workflow, and [docs/testing.md](https://github.com/kanad13/NotionDown/blob/main/docs/testing.md) covers the checks.
+- [docs/decisions.md](https://github.com/kanad13/NotionDown/blob/main/docs/decisions.md) lists ideas that were evaluated and not built.
+- [docs/sibling-extensions.md](https://github.com/kanad13/NotionDown/blob/main/docs/sibling-extensions.md) lists the other extensions published as KunalPathak and the files they share.
 
-Licensed under the [MIT License](LICENSE).
+Licensed under the [MIT License](https://github.com/kanad13/NotionDown/blob/main/LICENSE).
