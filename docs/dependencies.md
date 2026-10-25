@@ -13,7 +13,7 @@ Version numbers live only in the files in this table. Documentation refers to th
 
 | Kind                           | Examples                                          | Defined in                                                                   |
 | :----------------------------- | :------------------------------------------------ | :--------------------------------------------------------------------------- |
-| Bundled webview package        | Milkdown Crepe, Mermaid, CodeMirror language packages | `dependencies` in `package.json`; resolved version in `package-lock.json`    |
+| Bundled webview package        | Milkdown Crepe, Mermaid, CodeMirror language data | `dependencies` in `package.json`; resolved version in `package-lock.json`    |
 | Build, test, and release tools | webpack, ESLint, jsdom, `@vscode/vsce`, type packages | `devDependencies` in `package.json`; resolved version in `package-lock.json` |
 | Runtime and editor floors      | Node, VS Code                                     | `engines` in `package.json`                                                  |
 
@@ -77,7 +77,7 @@ The extension targets the current stable release of VS Code and carries no compa
   - `engines.node` names the lowest Node release that every tool in `devDependencies` supports and that still receives security fixes. The tightest tool sets it.
   - CI runs `npm test` on exactly that release.
 - **Moving the floor:**
-  - Raise it when a tool or the Node release schedule requires it, and change the two `node-version` entries in `.github/workflows` in the same commit.
+  - Raise it when a tool or the Node release schedule requires it, and change `.nvmrc` in the same commit. CI reads `.nvmrc` and fails when it differs from `engines.node`.
 
 ## Configuration Policy
 
