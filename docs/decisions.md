@@ -48,9 +48,9 @@ No entries.
 - **What it is:**
   - Typora offers an outline panel, a word count, and a focus mode that dims every line but the active one.
 - **Why it is deferred:**
-  - VS Code has an Outline view and a status bar, but this evaluation did not confirm that the Outline view follows a custom editor's page. A reliable outline needs a new message type from the page (headings) or the host parsing the file again, and the architecture allows four messages only. A word count in the status bar is smaller, but it is a second feature surface for a small gain, and focus mode is page CSS and script that only a few writers use.
+  - VS Code's Outline view stays empty in a NotionDown tab ("The active editor cannot provide outline information", checked in VS Code Insiders 1.144), because it reads text editors only. An outline needs a new message type from the page (headings) or the host parsing the file again, and the architecture allows four messages only. A word count in the status bar is smaller, but it is a second feature surface for a small gain, and focus mode is page CSS and script that only a few writers use.
 - **Reopen when:**
-  - Several users ask for an outline in particular, or VS Code lets a custom text editor feed its Outline view.
+  - Several users ask for an outline in particular, or VS Code lets a custom editor feed its Outline view.
 
 ### Callouts, toggles, and columns
 
