@@ -20,6 +20,7 @@ examples/
 test/
 node_modules/
 assets/icon.svg
+assets/screenshots/
 tools/
 .prettierrc
 .prettierignore

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Removed
+
+- **See Screenshots** on the default-editor question, the **Markdown: Show NotionDown Screenshots** command, and the Get Started walkthrough. The walkthrough did not open in some windows and showed the plain Welcome page instead. The question now has two buttons, **Use NotionDown** and **Keep Text Editor**. The screenshots stay in the readme and are no longer packed into the extension.
+
 ## [1.0.0] - 2026-10-26
 
 ### Added
