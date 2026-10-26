@@ -20,6 +20,11 @@ const VIEW_TYPE = "notionDown.editor";
 const COMMAND_OPEN = "notionDown.openEditor";
 const COMMAND_USE_NOTIONDOWN = "notionDown.useAsDefault";
 const COMMAND_USE_TEXT_EDITOR = "notionDown.useTextEditorAsDefault";
+const COMMAND_OPEN_SOURCE = "notionDown.openSource";
+const COMMAND_WALKTHROUGH = "notionDown.showWalkthrough";
+
+/** The walkthrough that shows screenshots, as `openWalkthrough` names it: `publisher.name#id`. */
+const WALKTHROUGH_ID = "KunalPathak.notiondown#notionDown.welcome";
 
 /** The file pattern that VS Code's `workbench.editorAssociations` setting maps to an editor. */
 const DEFAULT_PATTERN = "*.md";
@@ -117,23 +122,50 @@ async function chooseDefaultEditor(notionDown) {
 }
 
 /**
- * Opens a Markdown file in NotionDown, in place of the text editor tab that shows it now.
+ * Opens a Markdown file in one editor, in place of the tab that shows it in the other.
  *
- * Why close the text tab: `vscode.openWith` always adds a tab, so the user would see the file
+ * Why close the old tab: `vscode.openWith` always adds a tab, so the user would see the file
  * twice and still be looking at the editor they meant to leave. The tab is closed only when it
  * is the active tab, which is the case of a click on the title-bar button; a right-click in the
- * Explorer leaves other tabs alone. The document stays open in NotionDown, so closing the text
+ * Explorer leaves other tabs alone. The document stays open in the new editor, so closing the old
  * tab asks nothing, even when the file has unsaved edits.
+ *
+ * @param {vscode.Uri} target - The Markdown file
+ * @param {string} viewType - The editor to open: `VIEW_TYPE` or `TEXT_EDITOR_VIEW_TYPE`
+ * @returns {Promise<void>} Resolves once the file is open in the new editor
+ */
+async function showIn(target, viewType) {
+	const group = vscode.window.tabGroups && vscode.window.tabGroups.activeTabGroup;
+	const active = group && group.activeTab;
+	const input = active && active.input;
+	const showsFile = input && input.uri && input.uri.toString() === target.toString();
+	const isLeaving = viewType === VIEW_TYPE ? input instanceof vscode.TabInputText : input instanceof vscode.TabInputCustom && input.viewType === VIEW_TYPE;
+	const replaced = showsFile && isLeaving ? active : undefined;
+	await vscode.commands.executeCommand("vscode.openWith", target, viewType);
+	if (replaced) await vscode.window.tabGroups.close(replaced);
+}
+
+/**
+ * Opens a Markdown file in NotionDown in place of the text editor tab.
  *
  * @param {vscode.Uri} target - The Markdown file
  * @returns {Promise<void>} Resolves once the file is open in NotionDown
  */
-async function showInNotionDown(target) {
-	const group = vscode.window.tabGroups && vscode.window.tabGroups.activeTabGroup;
-	const active = group && group.activeTab;
-	const replaced = active && active.input instanceof vscode.TabInputText && active.input.uri.toString() === target.toString() ? active : undefined;
-	await vscode.commands.executeCommand("vscode.openWith", target, VIEW_TYPE);
-	if (replaced) await vscode.window.tabGroups.close(replaced);
+function showInNotionDown(target) {
+	return showIn(target, VIEW_TYPE);
+}
+
+/**
+ * Opens the screenshot walkthrough, which also holds the buttons that choose the default editor.
+ *
+ * Why a walkthrough: a notification holds text and buttons only, and the question is easier to
+ * answer after seeing the editor. VS Code's Get Started page renders images and command buttons
+ * with no webview and no message of our own.
+ *
+ * @returns {Thenable<unknown>} Resolves when VS Code has opened the page
+ */
+function showWalkthrough() {
+	return vscode.commands.executeCommand("workbench.action.openWalkthrough", WALKTHROUGH_ID, false);
 }
 
 /**
@@ -148,6 +180,7 @@ async function showInNotionDown(target) {
  * Why it can repeat: a notification fades after a few seconds and a dismissed one looks the same
  * as an ignored one, so the question comes back, in up to three sessions, until a button is
  * pressed. Pressing "Keep Text Editor" ends it for good; the two commands stay available.
+ * "See Screenshots" opens the walkthrough and counts as neither answer.
  *
  * Why only a user-level entry that names the text editor: a workspace entry is a project's choice,
  * and an entry for another editor is a choice this extension should not question.
@@ -169,8 +202,11 @@ async function offerDefaultEditor(state, { fromButton = false } = {}) {
 	const choice = await vscode.window.showInformationMessage(
 		"NotionDown is installed, but your editor associations open Markdown files in VS Code's text editor. Open them in NotionDown instead?",
 		"Use NotionDown",
+		"See Screenshots",
 		"Keep Text Editor"
 	);
+	// Looking is not answering: the walkthrough has the buttons, and the question may return next session.
+	if (choice === "See Screenshots") await showWalkthrough();
 	if (choice === "Keep Text Editor") await state.update(ANSWER_KEY, "keep");
 	if (choice !== "Use NotionDown") return;
 	await state.update(ANSWER_KEY, "use");
@@ -281,7 +317,11 @@ function createProvider(extensionUri) {
 function pickMarkdownUri(uri) {
 	if (uri && typeof uri.scheme === "string") return uri;
 	const editor = vscode.window.activeTextEditor;
-	return editor && editor.document.languageId === "markdown" ? editor.document.uri : undefined;
+	if (editor && editor.document.languageId === "markdown") return editor.document.uri;
+	// A custom editor is not a text editor, so its file is found through the active tab.
+	const group = vscode.window.tabGroups && vscode.window.tabGroups.activeTabGroup;
+	const input = group && group.activeTab && group.activeTab.input;
+	return input instanceof vscode.TabInputCustom && input.viewType === VIEW_TYPE ? input.uri : undefined;
 }
 
 /**
@@ -298,6 +338,15 @@ function activate(context) {
 		}),
 		vscode.commands.registerCommand(COMMAND_USE_NOTIONDOWN, () => chooseDefaultEditor(true)),
 		vscode.commands.registerCommand(COMMAND_USE_TEXT_EDITOR, () => chooseDefaultEditor(false)),
+		vscode.commands.registerCommand(COMMAND_WALKTHROUGH, showWalkthrough),
+		vscode.commands.registerCommand(COMMAND_OPEN_SOURCE, async (uri) => {
+			const target = pickMarkdownUri(uri);
+			if (!target) {
+				vscode.window.showErrorMessage("NotionDown: open a Markdown file first.");
+				return;
+			}
+			await showIn(target, TEXT_EDITOR_VIEW_TYPE);
+		}),
 		vscode.commands.registerCommand(COMMAND_OPEN, async (uri) => {
 			const target = pickMarkdownUri(uri);
 			if (!target) {
