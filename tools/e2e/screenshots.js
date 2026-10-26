@@ -85,6 +85,10 @@ async function main() {
 			await sleep(800);
 			await win.screenshot(path.join(out, `details-${name}.png`), ".editor-group-container");
 
+			await editor.scrollTo("Choosing a format");
+			await sleep(800);
+			await win.screenshot(path.join(out, `table-${name}.png`), ".editor-group-container");
+
 			const slash = path.join(profile.workspace, "slash.md");
 			fs.writeFileSync(slash, "# Meeting notes\n\nStart a new block with a slash.\n");
 			profile.open(slash);

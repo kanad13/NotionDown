@@ -65,7 +65,7 @@ npm test
 ### README screenshots
 
 - **Regenerate:**
-  - Run `node tools/e2e/screenshots.js` after a change to the page's look. It builds the package, opens a private VS Code in a light and a dark theme, and writes six images from [examples/showcase.md](../examples/showcase.md) to `assets/screenshots/`.
+  - Run `node tools/e2e/screenshots.js` after a change to the page's look. It builds the package, opens a private VS Code in a light and a dark theme, and writes eight images from [examples/showcase.md](../examples/showcase.md) to `assets/screenshots/`.
 - **Check:**
   - Open each image before you commit it.
 - **Addresses in the README:**
