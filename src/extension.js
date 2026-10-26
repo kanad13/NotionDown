@@ -32,7 +32,12 @@ const DEFAULT_PATTERN = "*.md";
 /** The `workbench.editorAssociations` value that means VS Code's own text editor. */
 const TEXT_EDITOR_VIEW_TYPE = "default";
 
-/** Global-state keys: how often the default-editor question went unanswered, and the answer once given. */
+/**
+ * Global-state keys: how often the default-editor question went unanswered, and the answer once given.
+ * Why state survives: VS Code keeps an extension's global state when it is uninstalled, so a
+ * reinstall inherits it. Only "keep" is stored as an answer, because the user's own setting is
+ * the truth after "use": if the text-editor entry comes back, the question may come back too.
+ */
 const ASKS_KEY = "notionDown.defaultAsks";
 const ANSWER_KEY = "notionDown.defaultAnswer";
 
@@ -180,6 +185,7 @@ function showWalkthrough() {
  * Why it can repeat: a notification fades after a few seconds and a dismissed one looks the same
  * as an ignored one, so the question comes back, in up to three sessions, until a button is
  * pressed. Pressing "Keep Text Editor" ends it for good; the two commands stay available.
+ * "Use NotionDown" stores nothing, because the user's setting is the record of that choice.
  * "See Screenshots" opens the walkthrough and counts as neither answer.
  *
  * Why only a user-level entry that names the text editor: a workspace entry is a project's choice,
@@ -190,7 +196,7 @@ function showWalkthrough() {
  * @returns {Promise<void>} Resolves after the user answers, or at once when no question is needed
  */
 async function offerDefaultEditor(state, { fromButton = false } = {}) {
-	if (state.get(ANSWER_KEY)) return;
+	if (state.get(ANSWER_KEY) === "keep") return;
 	const asks = state.get(ASKS_KEY) || 0;
 	if (!fromButton && asks >= MAX_UNANSWERED_ASKS) return;
 	const inspected = vscode.workspace.getConfiguration("workbench").inspect("editorAssociations");
@@ -209,7 +215,6 @@ async function offerDefaultEditor(state, { fromButton = false } = {}) {
 	if (choice === "See Screenshots") await showWalkthrough();
 	if (choice === "Keep Text Editor") await state.update(ANSWER_KEY, "keep");
 	if (choice !== "Use NotionDown") return;
-	await state.update(ANSWER_KEY, "use");
 	await chooseDefaultEditor(true);
 	// The file that is open now stays in the text editor until it is reopened.
 	const target = pickMarkdownUri();

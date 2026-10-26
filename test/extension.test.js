@@ -347,6 +347,17 @@ describe("default editor", () => {
 			assert.deepEqual(executed, [["vscode.openWith", doc.uri, VIEW_TYPE]]);
 		});
 
+		it("asks again after yes when the text-editor entry has come back, for example on a reinstall", async () => {
+			settings.global.editorAssociations = association("default");
+			userChoice.next = "Use NotionDown";
+			const state = await ask();
+			assert.deepEqual(settings.global.editorAssociations, {});
+			settings.global.editorAssociations = association("default");
+			userChoice.next = undefined;
+			await ask(state);
+			assert.equal(prompts.length, 2);
+		});
+
 		it("opens the screenshot walkthrough on request, changes nothing, and asks again next session", async () => {
 			settings.global.editorAssociations = association("default");
 			userChoice.next = "See Screenshots";
