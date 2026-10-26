@@ -37,9 +37,15 @@ flowchart LR
   - `priority: "default"` makes NotionDown open every `.md` file as soon as it installs, which is the product's purpose.
 - **When a user setting overrides the default:**
   - `workbench.editorAssociations` in the user's own settings can map `*.md` to the text editor, and VS Code then never opens NotionDown. The extension activates on Markdown (`onLanguage:markdown`) so that it can notice, and asks whether to remove that entry.
-  - The question appears only for a user-level entry that names the text editor. A workspace entry is a project's choice, and an entry for another editor is not questioned. A toast fades and a dismissed one looks like an ignored one, so the question comes back in up to three sessions until a button is pressed; "Keep Text Editor" ends it for good, and so does "Use NotionDown". Clicking the rocket asks again unless the user already answered. The two commands below stay available.
+  - The question appears only for a user-level entry that names the text editor. A workspace entry is a project's choice, and an entry for another editor is not questioned. A toast fades and a dismissed one looks like an ignored one, so the question comes back in up to three sessions until a button is pressed; "Keep Text Editor" ends it for good, and so does "Use NotionDown". "See Screenshots" opens the walkthrough and is not an answer. Clicking the rocket asks again unless the user already answered. The two commands below stay available.
 - **The rocket button:**
   - **Open in NotionDown** opens the file in NotionDown and closes the text editor tab that was showing it, so the file is not open twice. Opened from the Explorer, it leaves other tabs alone.
+- **Screenshots before the choice:**
+  - A notification holds text and buttons only, so the question has a **See Screenshots** button that runs `workbench.action.openWalkthrough` for the `notionDown.welcome` walkthrough. VS Code's Get Started page renders the images and the command buttons, so the feature adds no webview and no message type. The same walkthrough opens from **Markdown: Show NotionDown Screenshots**.
+  - The walkthrough reuses the six README images in `assets/screenshots/` (light and dark per step, with the same file for the high-contrast variants), so the package ships them. `test/extension.test.js` checks that every image exists and that every command link is declared.
+  - The last step has the two default-editor commands as buttons.
+- **Back to the source:**
+  - **Show Markdown Source in the Text Editor** is a title-bar button in the NotionDown tab. Like the rocket it replaces the tab, so the file is not open twice, and the document stays open, so nothing asks to save. The rocket shows in the text editor tab, so the two switch the view back and forth.
 - **Opting out:**
   - VS Code's own `workbench.editorAssociations` is the one place a user overrides a default, so the extension adds no setting of its own that would have to fight it.
   - **Use the VS Code Text Editor as the Default Markdown Editor** writes `"*.md": "default"` to the user setting, and **Use NotionDown as the Default Markdown Editor** removes that entry. Neither touches an entry that belongs to another editor, and neither copies workspace settings into the user setting.
@@ -107,6 +113,7 @@ A block editor re-serializes the document in its own style. Writing that output 
   - It serializes each original block through the same editor pipeline and compares the result with the editor's output, block by block.
   - The comparison ignores two serializer habits that are not edits: `<br />` for an empty paragraph, and swapping `-` for `*` between adjacent lists.
   - Link definitions travel with every block, because the editor resolves a reference link only beside its definition.
+  - The text fixes on edited blocks (`<br />` placeholders, `\#` escapes, `*` bullets) skip fenced code by CommonMark's rule: a fence closes only on the same character with at least as many marks.
 - **What changes in the file:**
   - A block the user edited is written in the editor's style: `-` bullets, a `---` rule, padded tables, and escapes where Markdown needs them.
   - A block the user moved keeps its original text.
@@ -158,7 +165,7 @@ The page renders untrusted Markdown, including raw HTML and diagram text, so the
 - **Setting:**
   - Mermaid runs with `securityLevel: "strict"`, which sanitizes labels and disables click handlers.
 - **Failure:**
-  - An invalid diagram shows an error note in place of the preview.
+  - An invalid diagram shows an error note in place of the preview, and the other diagrams still draw. `suppressErrorRendering: true` stops Mermaid from leaving its own error drawing in `<body>`, where it would show below the page. An end-to-end scenario checks both.
 
 ### Layer 4: Resource roots
 

@@ -69,7 +69,7 @@ npm test
 - **Check:**
   - Open each image before you commit it.
 - **Addresses in the README:**
-  - The package leaves the images out (`.vscodeignore`), and the store pages cannot resolve relative paths, so the README names every image and link by absolute address: `https://raw.githubusercontent.com/kanad13/NotionDown/main/...` for images (a `github.com/.../blob/...` address returns a page, not an image) and `https://github.com/kanad13/NotionDown/blob/main/...` for documents. `test/docs.test.js` fails on a relative address or a target that does not exist.
+  - The package ships the images, because the Get Started walkthrough shows them (`contributes.walkthroughs`). The store pages cannot resolve relative paths, so the README names every image and link by absolute address: `https://raw.githubusercontent.com/kanad13/NotionDown/main/...` for images (a `github.com/.../blob/...` address returns a page, not an image) and `https://github.com/kanad13/NotionDown/blob/main/...` for documents. `test/docs.test.js` fails on a relative address or a target that does not exist.
   - The addresses point at `main`, so merge and push the images before you publish.
 
 ### Style
