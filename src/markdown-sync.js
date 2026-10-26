@@ -45,6 +45,33 @@ function splitFrontMatter(text) {
 }
 
 /**
+ * Creates a line classifier that follows CommonMark's fence rules.
+ *
+ * Why: the text fixes below must leave code alone. A bare on/off toggle on every line that starts
+ * with three backticks or tildes gets longer fences wrong: a ```` fence that shows a ``` example
+ * would flip to "outside code" in the middle, and the lines after it would be rewritten.
+ * A fence closes only on the same character, with at least as many marks and nothing after them.
+ *
+ * @returns {(line: string) => boolean} Called with each line in order; true when the line belongs to a fenced code block, fence lines included
+ */
+function createFenceTracker() {
+	let open;
+	return (line) => {
+		const fence = /^[\s>]*(`{3,}|~{3,})(.*)$/.exec(line);
+		if (open) {
+			if (fence && fence[1][0] === open.mark && fence[1].length >= open.size && fence[2].trim() === "") open = undefined;
+			return true;
+		}
+		// A backtick fence cannot have a backtick in its info string; that line is inline code.
+		if (fence && !(fence[1][0] === "`" && fence[2].includes("`"))) {
+			open = { mark: fence[1][0], size: fence[1].length };
+			return true;
+		}
+		return false;
+	};
+}
+
+/**
  * Reduces a block to what its content is, ignoring style the serializer varies with context.
  *
  * Why: next to another list, the serializer swaps `-` for `*` so the lists stay separate, and it
@@ -56,13 +83,10 @@ function splitFrontMatter(text) {
 function keyOf(text) {
 	const trimmed = text.trim();
 	if (EMPTY_LINE_PLACEHOLDER.test(trimmed)) return "";
-	let fenced = false;
+	const inFence = createFenceTracker();
 	return trimmed
 		.split("\n")
-		.map((line) => {
-			if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
-			return fenced ? line : line.replace(/^(\s*)[*+](\s)/, "$1-$2");
-		})
+		.map((line) => (inFence(line) ? line : line.replace(/^(\s*)[*+](\s)/, "$1-$2")))
 		.join("\n");
 }
 
@@ -74,11 +98,10 @@ function keyOf(text) {
  * @returns {string} Text without placeholders, outside code fences
  */
 function stripPlaceholders(text) {
-	let fenced = false;
+	const inFence = createFenceTracker();
 	const lines = [];
 	for (const line of text.split("\n")) {
-		if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
-		if (fenced) {
+		if (inFence(line)) {
 			lines.push(line);
 			continue;
 		}
@@ -109,13 +132,10 @@ function stripPlaceholders(text) {
  * @returns {string} Text without those backslashes, outside code fences
  */
 function relaxHeadingEscapes(text) {
-	let fenced = false;
+	const inFence = createFenceTracker();
 	return text
 		.split("\n")
-		.map((line) => {
-			if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
-			return fenced ? line : line.replace(/^((?:\s*(?:>|[-*+]|\d+[.)]))*\s*)\\(#{1,6})(?=[^\s#])/, "$1$2");
-		})
+		.map((line) => (inFence(line) ? line : line.replace(/^((?:\s*(?:>|[-*+]|\d+[.)]))*\s*)\\(#{1,6})(?=[^\s#])/, "$1$2")))
 		.join("\n");
 }
 

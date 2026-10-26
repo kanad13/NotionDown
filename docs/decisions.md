@@ -43,6 +43,42 @@ No entries.
 - **Reopen when:**
   - Several users ask for the same option, or a default width or size proves wrong for a group of users.
 
+### Outline panel, word count, focus and typewriter mode
+
+- **What it is:**
+  - Typora offers an outline panel, a word count, and a focus mode that dims every line but the active one.
+- **Why it is deferred:**
+  - VS Code's Outline view stays empty in a NotionDown tab ("The active editor cannot provide outline information", checked in VS Code Insiders 1.144), because it reads text editors only. An outline needs a new message type from the page (headings) or the host parsing the file again, and the architecture allows four messages only. A word count in the status bar is smaller, but it is a second feature surface for a small gain, and focus mode is page CSS and script that only a few writers use.
+- **Reopen when:**
+  - Several users ask for an outline in particular, or VS Code lets a custom editor feed its Outline view.
+
+### Callouts, toggles, and columns
+
+- **What it is:**
+  - Notion's callout, toggle list, and column blocks.
+- **Why it is deferred:**
+  - Plain Markdown has no syntax for them. Notion's own Markdown export writes them as XML-like tags, which other renderers show as raw text. The Crepe editor in use has no such blocks, and the file must stay readable everywhere. GitHub's alert syntax (`> [!NOTE]`) is the portable form, but the editor would show it as a quote until a feature for it exists.
+- **Reopen when:**
+  - Crepe ships a block for GitHub alerts, or users ask for alerts specifically.
+
+### Rewriting the serializer's output fixes inside the serializer
+
+- **What it is:**
+  - `src/markdown-sync.js` removes `<br />` placeholders and the `\#` escape from the serializer's text after the fact. The same effect could come from custom `remark-stringify` handlers.
+- **Why it is deferred:**
+  - The text fixes are small, run only on blocks the user edited, and have fixtures. Fence tracking was the one real defect and follows CommonMark now. Handlers would couple the code to remark-stringify's internals, which change between Milkdown releases.
+- **Reopen when:**
+  - A fixture shows a wrong rewrite that the text fixes cannot repair, or a Milkdown upgrade breaks them.
+
+### Live theme change for Mermaid
+
+- **What it is:**
+  - A diagram redraws when the user changes the VS Code color theme.
+- **Why it is deferred:**
+  - The diagram takes its theme when the file opens, and the readme says so. Redrawing needs an observer on the body class and a way to refresh Crepe's preview slot.
+- **Reopen when:**
+  - Users report it, or Crepe exposes a refresh for the preview.
+
 ## Declined
 
 ### Image insertion (paste, drag and drop, upload)

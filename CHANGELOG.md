@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-10-26
+
+### Added
+
+- **See Screenshots** on the default-editor question opens a Get Started page that shows NotionDown in light and dark and has the buttons that choose the default editor. **Markdown: Show NotionDown Screenshots** opens the same page.
+- A `</>` button in the NotionDown tab shows the Markdown source in VS Code's text editor.
+
+### Fixed
+
+- The default-editor question appeared never again after a reinstall if you had once chosen NotionDown, because VS Code keeps an extension's stored answers through an uninstall. A "yes" is no longer stored, so the question returns when your settings send Markdown to the text editor again.
+- A Mermaid diagram with an error no longer leaves its error drawing at the bottom of the page.
+- Code fences longer than three backticks, and tilde fences that hold backtick lines, are treated as code when you edit the block around them.
+
+### Changed
+
+- The readme leads with the features and more screenshots.
+
 ## [0.4.0] - 2026-10-25
 
 ### Fixed

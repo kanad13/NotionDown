@@ -4,6 +4,8 @@
  */
 const { describe, it, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const {
 	install,
 	handlers,
@@ -332,7 +334,7 @@ describe("default editor", () => {
 			settings.global.editorAssociations = association("default");
 			await ask();
 			assert.equal(prompts.length, 1);
-			assert.deepEqual(prompts[0].buttons, ["Use NotionDown", "Keep Text Editor"]);
+			assert.deepEqual(prompts[0].buttons, ["Use NotionDown", "See Screenshots", "Keep Text Editor"]);
 		});
 
 		it("removes the entry and opens the current Markdown file in NotionDown when the user agrees", async () => {
@@ -343,6 +345,28 @@ describe("default editor", () => {
 			await ask();
 			assert.deepEqual(settings.global.editorAssociations, { "*.png": "imagePreview.previewEditor" });
 			assert.deepEqual(executed, [["vscode.openWith", doc.uri, VIEW_TYPE]]);
+		});
+
+		it("asks again after yes when the text-editor entry has come back, for example on a reinstall", async () => {
+			settings.global.editorAssociations = association("default");
+			userChoice.next = "Use NotionDown";
+			const state = await ask();
+			assert.deepEqual(settings.global.editorAssociations, {});
+			settings.global.editorAssociations = association("default");
+			userChoice.next = undefined;
+			await ask(state);
+			assert.equal(prompts.length, 2);
+		});
+
+		it("opens the screenshot walkthrough on request, changes nothing, and asks again next session", async () => {
+			settings.global.editorAssociations = association("default");
+			userChoice.next = "See Screenshots";
+			const state = await ask();
+			assert.deepEqual(executed, [["workbench.action.openWalkthrough", "KunalPathak.notiondown#notionDown.welcome", false]]);
+			assert.deepEqual(settings.writes, []);
+			userChoice.next = undefined;
+			await ask(state);
+			assert.equal(prompts.length, 2);
 		});
 
 		it("changes nothing when the user keeps the text editor, and never asks again", async () => {
@@ -457,5 +481,78 @@ describe("default editor", () => {
 	it("declares both commands in the manifest", () => {
 		const ids = require("../package.json").contributes.commands.map((c) => c.command);
 		assert.ok(ids.includes("notionDown.useAsDefault") && ids.includes("notionDown.useTextEditorAsDefault"));
+	});
+});
+
+describe("screenshot walkthrough", () => {
+	beforeEach(reset);
+	const manifest = require("../package.json");
+	const walkthrough = manifest.contributes.walkthroughs.find((w) => w.id === "notionDown.welcome");
+	const declared = manifest.contributes.commands.map((c) => c.command);
+
+	it("opens from a command", async () => {
+		activate(makeContext());
+		await handlers["command:notionDown.showWalkthrough"]();
+		assert.deepEqual(executed, [["workbench.action.openWalkthrough", "KunalPathak.notiondown#notionDown.welcome", false]]);
+	});
+
+	it("shows a screenshot in a light and a dark theme at every step that has one, each with a described alt text", () => {
+		const shown = walkthrough.steps.filter((step) => step.media);
+		assert.ok(shown.length >= 3);
+		for (const { media } of shown) {
+			assert.ok(media.altText.length >= 10);
+			for (const key of ["dark", "light", "hc", "hcLight"]) {
+				assert.ok(fs.existsSync(path.join(__dirname, "..", media.image[key])), `${media.image[key]} is missing`);
+			}
+		}
+	});
+
+	it("links only to commands the manifest declares, and lets the user choose the default editor in its last step", () => {
+		const linked = walkthrough.steps.flatMap((step) => [...step.description.matchAll(/\(command:([\w.]+)\)/g)].map((m) => m[1]));
+		for (const id of linked) assert.ok(declared.includes(id), `${id} is not declared`);
+		assert.ok(linked.includes("notionDown.useAsDefault") && linked.includes("notionDown.useTextEditorAsDefault"));
+	});
+
+	it("packs the images it shows", () => {
+		const ignore = fs.readFileSync(path.join(__dirname, "..", ".vscodeignore"), "utf8");
+		assert.ok(!/^assets\/screenshots\/?$/m.test(ignore));
+	});
+});
+
+describe("source command", () => {
+	beforeEach(reset);
+	const customTab = (doc) => ({ input: new vscode.TabInputCustom(doc.uri, VIEW_TYPE) });
+
+	it("shows the file in VS Code's text editor in place of the NotionDown tab", async () => {
+		activate(makeContext());
+		const doc = makeDoc("/a.md", "x");
+		const tab = customTab(doc);
+		tabs.open = [tab];
+		tabs.active = tab;
+		await handlers["command:notionDown.openSource"](doc.uri);
+		assert.deepEqual(executed, [["vscode.openWith", doc.uri, "default"]]);
+		assert.deepEqual(tabs.closed, [tab]);
+	});
+
+	it("finds the file from the active tab when no file is passed", async () => {
+		activate(makeContext());
+		const doc = makeDoc("/a.md", "x");
+		const tab = customTab(doc);
+		tabs.open = [tab];
+		tabs.active = tab;
+		await handlers["command:notionDown.openSource"]();
+		assert.equal(executed[0][1], doc.uri);
+	});
+
+	it("reports an error when no Markdown file is in front", async () => {
+		activate(makeContext());
+		await handlers["command:notionDown.openSource"]();
+		assert.equal(executed.length, 0);
+		assert.equal(errors.length, 1);
+	});
+
+	it("is offered only in the NotionDown tab", () => {
+		const item = require("../package.json").contributes.menus["editor/title"].find((m) => m.command === "notionDown.openSource");
+		assert.match(item.when, /activeCustomEditorId == notionDown\.editor/);
 	});
 });

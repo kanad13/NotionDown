@@ -65,11 +65,11 @@ npm test
 ### README screenshots
 
 - **Regenerate:**
-  - Run `node tools/e2e/screenshots.js` after a change to the page's look. It builds the package, opens a private VS Code in a light and a dark theme, and writes six images from [examples/showcase.md](../examples/showcase.md) to `assets/screenshots/`.
+  - Run `node tools/e2e/screenshots.js` after a change to the page's look. It builds the package, opens a private VS Code in a light and a dark theme, and writes eight images from [examples/showcase.md](../examples/showcase.md) to `assets/screenshots/`.
 - **Check:**
   - Open each image before you commit it.
 - **Addresses in the README:**
-  - The package leaves the images out (`.vscodeignore`), and the store pages cannot resolve relative paths, so the README names every image and link by absolute address: `https://raw.githubusercontent.com/kanad13/NotionDown/main/...` for images (a `github.com/.../blob/...` address returns a page, not an image) and `https://github.com/kanad13/NotionDown/blob/main/...` for documents. `test/docs.test.js` fails on a relative address or a target that does not exist.
+  - The package ships the images, because the Get Started walkthrough shows them (`contributes.walkthroughs`). The store pages cannot resolve relative paths, so the README names every image and link by absolute address: `https://raw.githubusercontent.com/kanad13/NotionDown/main/...` for images (a `github.com/.../blob/...` address returns a page, not an image) and `https://github.com/kanad13/NotionDown/blob/main/...` for documents. `test/docs.test.js` fails on a relative address or a target that does not exist.
   - The addresses point at `main`, so merge and push the images before you publish.
 
 ### Style

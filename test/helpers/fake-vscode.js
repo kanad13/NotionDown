@@ -45,6 +45,12 @@ const vscode = {
 			this.uri = uri;
 		}
 	},
+	TabInputCustom: class TabInputCustom {
+		constructor(uri, viewType) {
+			this.uri = uri;
+			this.viewType = viewType;
+		}
+	},
 	window: {
 		activeTextEditor: undefined,
 		tabGroups: {

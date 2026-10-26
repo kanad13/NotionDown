@@ -59,6 +59,16 @@ describe("reconcileMarkdown (pure)", () => {
 		assert.equal(reconcileMarkdown("", edited, fakeTools), "- a\n  -\n\n> note\n>\n> more\n");
 	});
 
+	it("treats a shorter fence inside a longer one as code, so lines after it stay untouched", () => {
+		const edited = "````md\n```\n\\#kept\n- <br />\n<br />\n````\n";
+		assert.equal(reconcileMarkdown("", edited, fakeTools), edited);
+	});
+
+	it("ends a tilde fence only on a tilde fence, so backtick lines inside stay code", () => {
+		const edited = "~~~md\n```\n\\#kept\n~~~\n";
+		assert.equal(reconcileMarkdown("", edited, fakeTools), edited);
+	});
+
 	it("leaves a <br /> line inside a code fence alone", () => {
 		assert.equal(reconcileMarkdown("", "```html\n<br />\n```\n", fakeTools), "```html\n<br />\n```\n");
 	});
