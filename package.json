@@ -83,11 +83,6 @@
 				"title": "Show Markdown Source in the Text Editor",
 				"category": "Markdown",
 				"icon": "$(code)"
-			},
-			{
-				"command": "notionDown.showWalkthrough",
-				"title": "Show NotionDown Screenshots",
-				"category": "Markdown"
 			}
 		],
 		"menus": {
@@ -110,72 +105,7 @@
 					"group": "navigation"
 				}
 			]
-		},
-		"walkthroughs": [
-			{
-				"id": "notionDown.welcome",
-				"title": "Write Markdown like Notion",
-				"description": "See what NotionDown looks like, then choose whether it opens your Markdown files.",
-				"steps": [
-					{
-						"id": "canvas",
-						"title": "One canvas, no preview pane",
-						"description": "You edit the finished page. Task lists, tables and Mermaid diagrams render as you write, and the file on disk stays plain Markdown.",
-						"media": {
-							"image": {
-								"dark": "assets/screenshots/overview-dark.png",
-								"light": "assets/screenshots/overview-light.png",
-								"hc": "assets/screenshots/overview-dark.png",
-								"hcLight": "assets/screenshots/overview-light.png"
-							},
-							"altText": "NotionDown editing a note that has a task list and a Mermaid diagram."
-						}
-					},
-					{
-						"id": "slash",
-						"title": "Type / for any block",
-						"description": "Headings, lists, quotes, tables, code, math and diagrams are one slash away. Drag the handle beside a block to move it.",
-						"media": {
-							"image": {
-								"dark": "assets/screenshots/slash-dark.png",
-								"light": "assets/screenshots/slash-light.png",
-								"hc": "assets/screenshots/slash-dark.png",
-								"hcLight": "assets/screenshots/slash-light.png"
-							},
-							"altText": "The NotionDown slash menu listing block types."
-						}
-					},
-					{
-						"id": "details",
-						"title": "Math, code and tables in place",
-						"description": "Math renders with KaTeX, code blocks highlight, and tables are edited visually.",
-						"media": {
-							"image": {
-								"dark": "assets/screenshots/details-dark.png",
-								"light": "assets/screenshots/details-light.png",
-								"hc": "assets/screenshots/details-dark.png",
-								"hcLight": "assets/screenshots/details-light.png"
-							},
-							"altText": "Math, a code block, a table and a quote shown in NotionDown."
-						}
-					},
-					{
-						"id": "default",
-						"title": "Choose your default Markdown editor",
-						"description": "Open every `.md` file in NotionDown, or keep VS Code's text editor. You can switch at any time from the Command Palette.\\n[Use NotionDown](command:notionDown.useAsDefault)\\n[Keep the Text Editor](command:notionDown.useTextEditorAsDefault)",
-						"media": {
-							"image": {
-								"dark": "assets/screenshots/overview-dark.png",
-								"light": "assets/screenshots/overview-light.png",
-								"hc": "assets/screenshots/overview-dark.png",
-								"hcLight": "assets/screenshots/overview-light.png"
-							},
-							"altText": "NotionDown editing a note that has a task list and a Mermaid diagram."
-						}
-					}
-				]
-			}
-		]
+		}
 	},
 	"capabilities": {
 		"untrustedWorkspaces": {

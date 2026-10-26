@@ -182,21 +182,6 @@ const SCENARIOS = [
 		},
 	},
 	{
-		name: "See Screenshots opens the walkthrough and leaves the setting alone",
-		settings: { "workbench.editorAssociations": { "*.md": "default" } },
-		async run({ profile, win }) {
-			const file = path.join(profile.workspace, "shots.md");
-			fs.writeFileSync(file, "# Shots\n");
-			profile.open(file);
-			await waitFor("the question", async () => (await win.notifications()).some((n) => n.buttons.includes("See Screenshots")), 30000);
-			await win.clickNotificationButton("See Screenshots");
-			// The walkthrough opens inside the Welcome tab, so the step titles prove that VS Code found its id.
-			await waitFor("the walkthrough steps", () => win.inWorkbench("document.querySelector('.gettingStartedContainer')?.innerText.includes('Choose your default Markdown editor')"), 15000);
-			const current = JSON.parse(fs.readFileSync(profile.settingsPath, "utf8").replace(/^\s*\/\/.*$/gm, ""));
-			assert.equal(current["workbench.editorAssociations"]["*.md"], "default", "looking at screenshots changed the setting");
-		},
-	},
-	{
 		name: "the source button replaces the NotionDown tab with the text editor",
 		settings: {},
 		async run({ profile, win }) {
@@ -257,7 +242,7 @@ const SCENARIOS = [
 				async () => (await win.notifications()).find((n) => n.buttons.includes("Use NotionDown")),
 				30000
 			);
-			assert.deepEqual(toast.buttons, ["Use NotionDown", "See Screenshots", "Keep Text Editor"]);
+			assert.deepEqual(toast.buttons, ["Use NotionDown", "Keep Text Editor"]);
 			await win.clickNotificationButton("Use NotionDown");
 			const settings = await waitFor(
 				"the setting to change",

@@ -45,7 +45,7 @@ NotionDown opens every `.md` file by default. Open one and start writing.
 
 - The **`</>`** button in a NotionDown tab shows the Markdown source in VS Code's text editor. The rocket button in the text editor brings you back. Each replaces the tab, so the file is never open twice.
 - To choose the default for all Markdown files, run **Markdown: Use the VS Code Text Editor as the Default Markdown Editor** or **Markdown: Use NotionDown as the Default Markdown Editor** from the Command Palette. Both write one `"*.md"` entry to your `workbench.editorAssociations` user setting, so you can also edit it in settings.json.
-- If that setting already sends `*.md` to the text editor, NotionDown asks whether to switch. **See Screenshots** on that question, or **Markdown: Show NotionDown Screenshots**, opens a Get Started page that shows the editor and has the buttons to choose.
+- If that setting already sends `*.md` to the text editor, NotionDown asks whether to switch.
 - For one file only, use **Reopen Editor With...** and pick the editor.
 - To open a file in NotionDown from the Explorer, right-click it and choose **Open in NotionDown**.
 

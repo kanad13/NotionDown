@@ -21,10 +21,6 @@ const COMMAND_OPEN = "notionDown.openEditor";
 const COMMAND_USE_NOTIONDOWN = "notionDown.useAsDefault";
 const COMMAND_USE_TEXT_EDITOR = "notionDown.useTextEditorAsDefault";
 const COMMAND_OPEN_SOURCE = "notionDown.openSource";
-const COMMAND_WALKTHROUGH = "notionDown.showWalkthrough";
-
-/** The walkthrough that shows screenshots, as `openWalkthrough` names it: `publisher.name#id`. */
-const WALKTHROUGH_ID = "KunalPathak.notiondown#notionDown.welcome";
 
 /** The file pattern that VS Code's `workbench.editorAssociations` setting maps to an editor. */
 const DEFAULT_PATTERN = "*.md";
@@ -161,19 +157,6 @@ function showInNotionDown(target) {
 }
 
 /**
- * Opens the screenshot walkthrough, which also holds the buttons that choose the default editor.
- *
- * Why a walkthrough: a notification holds text and buttons only, and the question is easier to
- * answer after seeing the editor. VS Code's Get Started page renders images and command buttons
- * with no webview and no message of our own.
- *
- * @returns {Thenable<unknown>} Resolves when VS Code has opened the page
- */
-function showWalkthrough() {
-	return vscode.commands.executeCommand("workbench.action.openWalkthrough", WALKTHROUGH_ID, false);
-}
-
-/**
  * Asks whether NotionDown should replace the text editor as the Markdown default, when the
  * user's own `workbench.editorAssociations` keeps Markdown in the text editor.
  *
@@ -186,7 +169,6 @@ function showWalkthrough() {
  * as an ignored one, so the question comes back, in up to three sessions, until a button is
  * pressed. Pressing "Keep Text Editor" ends it for good; the two commands stay available.
  * "Use NotionDown" stores nothing, because the user's setting is the record of that choice.
- * "See Screenshots" opens the walkthrough and counts as neither answer.
  *
  * Why only a user-level entry that names the text editor: a workspace entry is a project's choice,
  * and an entry for another editor is a choice this extension should not question.
@@ -208,11 +190,8 @@ async function offerDefaultEditor(state, { fromButton = false } = {}) {
 	const choice = await vscode.window.showInformationMessage(
 		"NotionDown is installed, but your editor associations open Markdown files in VS Code's text editor. Open them in NotionDown instead?",
 		"Use NotionDown",
-		"See Screenshots",
 		"Keep Text Editor"
 	);
-	// Looking is not answering: the walkthrough has the buttons, and the question may return next session.
-	if (choice === "See Screenshots") await showWalkthrough();
 	if (choice === "Keep Text Editor") await state.update(ANSWER_KEY, "keep");
 	if (choice !== "Use NotionDown") return;
 	await chooseDefaultEditor(true);
@@ -343,7 +322,6 @@ function activate(context) {
 		}),
 		vscode.commands.registerCommand(COMMAND_USE_NOTIONDOWN, () => chooseDefaultEditor(true)),
 		vscode.commands.registerCommand(COMMAND_USE_TEXT_EDITOR, () => chooseDefaultEditor(false)),
-		vscode.commands.registerCommand(COMMAND_WALKTHROUGH, showWalkthrough),
 		vscode.commands.registerCommand(COMMAND_OPEN_SOURCE, async (uri) => {
 			const target = pickMarkdownUri(uri);
 			if (!target) {
