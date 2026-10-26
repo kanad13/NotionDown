@@ -182,6 +182,46 @@ const SCENARIOS = [
 		},
 	},
 	{
+		name: "See Screenshots opens the walkthrough and leaves the setting alone",
+		settings: { "workbench.editorAssociations": { "*.md": "default" } },
+		async run({ profile, win }) {
+			const file = path.join(profile.workspace, "shots.md");
+			fs.writeFileSync(file, "# Shots\n");
+			profile.open(file);
+			await waitFor("the question", async () => (await win.notifications()).some((n) => n.buttons.includes("See Screenshots")), 30000);
+			await win.clickNotificationButton("See Screenshots");
+			// The walkthrough opens inside the Welcome tab, so the step titles prove that VS Code found its id.
+			await waitFor("the walkthrough steps", () => win.inWorkbench("document.querySelector('.gettingStartedContainer')?.innerText.includes('Choose your default Markdown editor')"), 15000);
+			const current = JSON.parse(fs.readFileSync(profile.settingsPath, "utf8").replace(/^\s*\/\/.*$/gm, ""));
+			assert.equal(current["workbench.editorAssociations"]["*.md"], "default", "looking at screenshots changed the setting");
+		},
+	},
+	{
+		name: "the source button replaces the NotionDown tab with the text editor",
+		settings: {},
+		async run({ profile, win }) {
+			const file = path.join(profile.workspace, "source.md");
+			fs.writeFileSync(file, "# Source MarkerS\n");
+			profile.open(file);
+			await win.editor("MarkerS");
+			await waitFor("the source button", () => win.clickTitleAction("Show Markdown Source in the Text Editor"), 15000);
+			await waitFor("one tab for the file", async () => (await win.tabs()).filter((t) => t.startsWith("source.md")).length === 1, 10000);
+		},
+	},
+	{
+		name: "a broken Mermaid diagram shows an error note, leaves no debris, and the next diagram still draws",
+		settings: {},
+		async run({ profile, win }) {
+			const file = path.join(profile.workspace, "mermaid.md");
+			fs.writeFileSync(file, "# Mermaid MarkerM\n\n```mermaid\ngraph TD\n  A --> \n  B[[[\n```\n\n```mermaid\ngraph LR\n  X --> Y\n```\n");
+			profile.open(file);
+			const editor = await win.editor("MarkerM");
+			await waitFor("the second diagram", () => editor.has(".notiondown-mermaid:not(.notiondown-mermaid-error) svg"), 30000);
+			assert.ok(await editor.has(".notiondown-mermaid-error"), "the broken diagram shows no error note");
+			assert.equal(await editor.has('body > [id^="dnotiondown-mermaid"]'), false, "Mermaid left its error drawing in the page");
+		},
+	},
+	{
 		name: "a change made outside the editor appears in the page",
 		settings: {},
 		async run({ profile, win }) {
@@ -217,7 +257,7 @@ const SCENARIOS = [
 				async () => (await win.notifications()).find((n) => n.buttons.includes("Use NotionDown")),
 				30000
 			);
-			assert.deepEqual(toast.buttons, ["Use NotionDown", "Keep Text Editor"]);
+			assert.deepEqual(toast.buttons, ["Use NotionDown", "See Screenshots", "Keep Text Editor"]);
 			await win.clickNotificationButton("Use NotionDown");
 			const settings = await waitFor(
 				"the setting to change",

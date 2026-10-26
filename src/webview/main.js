@@ -10,7 +10,8 @@
  *   tests run against the real editor. This file only connects it to the DOM and the host.
  * - Blocks the user did not edit keep their original text (see markdown-sync.js), so opening or
  *   saving a file never rewrites lines the user did not touch.
- * - Mermaid runs with `securityLevel: "strict"`, so diagram text cannot inject markup.
+ * - Mermaid runs with `securityLevel: "strict"`, so diagram text cannot inject markup, and a broken
+ *   diagram shows an error note in its own block without stopping the others or leaving debris.
  */
 import { Crepe } from "@milkdown/crepe";
 import { editorViewCtx, parserCtx, remarkCtx, remarkStringifyOptionsCtx, serializerCtx } from "@milkdown/kit/core";
@@ -66,7 +67,8 @@ async function renderMermaid(source) {
 	try {
 		const { default: mermaid } = await import(/* webpackChunkName: "mermaid" */ "mermaid");
 		const dark = document.body.classList.contains("vscode-dark") || document.body.classList.contains("vscode-high-contrast");
-		mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default" });
+		// Without suppressErrorRendering, Mermaid leaves its own error drawing in <body> after a parse error.
+		mermaid.initialize({ startOnLoad: false, securityLevel: "strict", suppressErrorRendering: true, theme: dark ? "dark" : "default" });
 		const { svg } = await mermaid.render(`notiondown-mermaid-${mermaidRuns++}`, source);
 		element.innerHTML = svg;
 	} catch (error) {
